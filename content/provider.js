@@ -7,61 +7,36 @@
  */
 
 "use strict";
-// check if getItem returns an array because of recursions!
 
-// Every object in here will be loaded into TbSync.providers.<providername>.
-const dav = TbSync.providers.dav;
+// Mandatory import to be able to communicate with TbSync.
+import { TbSync } from './includes/tbsync/tbsync.js';
+
+// Either include all other imports here, or use ES6 style dependencies and let
+// each script include whatever it needs.
+// import * as dav from './includes/sync.js';
 
 /**
  * Implementing the TbSync interface for external provider extensions.
  */
-
-var Base = class {
+let Base = class {
     /**
      * Called during load of external provider extension to init provider.
      */
-    static async load() {
-        // Set default prefs
-        let branch = Services.prefs.getDefaultBranch("extensions.dav4tbsync.");
-        branch.setIntPref("maxitems", 50);
-        branch.setIntPref("timeout", 90000);
-        branch.setCharPref("clientID.type", "TbSync");
-        branch.setCharPref("clientID.useragent", "Thunderbird CalDAV/CardDAV");
-        branch.setBoolPref("googlesupport", false);    
-        branch.setBoolPref("enforceUniqueCalendarUrls", false);    
-        branch.setCharPref("OAuth2_ClientID", "689460414096-e4nddn8tss5c59glidp4bc0qpeu3oper.apps.googleusercontent.com");
-        branch.setCharPref("OAuth2_ClientSecret", "LeTdF3UEpCvP1V3EBygjP-kl");
-
-        dav.openWindows = {};
-
-        let providerData = new TbSync.ProviderData("dav");   
-        dav.overlayManager = new OverlayManager(providerData.extension, {verbose: 0});
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/abNewCardDialog.xhtml", "chrome://dav4tbsync/content/overlays/abNewCardWindow.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/abNewCardDialog.xhtml", "chrome://dav4tbsync/content/overlays/abCardWindow.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/abEditCardDialog.xhtml", "chrome://dav4tbsync/content/overlays/abCardWindow.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/addressbook.xhtml", "chrome://dav4tbsync/content/overlays/addressbookoverlay.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/addressbook.xhtml", "chrome://dav4tbsync/content/overlays/addressbookdetailsoverlay.xhtml");
-
-        // The abCSS.xul overlay is just adding a CSS file.
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/messengercompose/messengercompose.xhtml", "chrome://dav4tbsync/content/overlays/abCSS.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/abNewCardDialog.xhtml", "chrome://dav4tbsync/content/overlays/abCSS.xhtml");
-        await dav.overlayManager.registerOverlay("chrome://messenger/content/addressbook/addressbook.xhtml", "chrome://dav4tbsync/content/overlays/abCSS.xhtml");
-
-        dav.overlayManager.startObserving();
+    async load() {
+        // openWindows is state data and needs to be managed in a central background message hub
+        this.openWindows = {};
     }
 
 
     /**
      * Called during unload of external provider extension to unload provider.
      */
-    static async unload() {
-        dav.overlayManager.stopObserving();	
-
+    async unload() {
         // Close all open windows of this provider.
-        for (let id in dav.openWindows) {
-          if (dav.openWindows.hasOwnProperty(id)) {
+        for (let id in this.openWindows) {
+          if (this.openWindows.hasOwnProperty(id)) {
             try {
-                dav.openWindows[id].close();
+                this.openWindows[id].close();
             } catch (e) {
                 //NOOP
             }
@@ -73,25 +48,24 @@ var Base = class {
     /**
      * Returns string for the name of provider for the add account menu.
      */
-    static getProviderName() {
-        return TbSync.getString("menu.name", "dav");
+    async getProviderName() {
+        return messenger.i18n.getMessage("menu.name");
     }
 
 
     /**
      * Returns version of the TbSync API this provider is using
      */
-    static getApiVersion() { return "2.4"; }
-
+    async getApiVersion() { return "3.0"; }
 
 
     /**
      * Returns location of a provider icon.
      */
-    static getProviderIcon(size, accountData = null) {
+    async getProviderIcon(size, accountID = null) {
         let root = "sabredav";
-        if (accountData) {
-            let serviceprovider = accountData.getAccountProperty("serviceprovider");
+        if (accountID) {
+            let serviceprovider = TbSync.accounts.getAccountProperty(accountID, "serviceprovider");
             if (dav.sync.serviceproviders.hasOwnProperty(serviceprovider)) {
                 root = dav.sync.serviceproviders[serviceprovider].icon;
             }
@@ -99,11 +73,11 @@ var Base = class {
         
         switch (size) {
             case 16:
-                return "chrome://dav4tbsync/content/skin/"+root+"16.png";
+                return "/content/skin/"+root+"16.png";
             case 32:
-                return "chrome://dav4tbsync/content/skin/"+root+"32.png";
+                return "/content/skin/"+root+"32.png";
             default :
-                return "chrome://dav4tbsync/content/skin/"+root+"48.png";
+                return "/content/skin/"+root+"48.png";
         }
     }
 
@@ -144,7 +118,7 @@ var Base = class {
      * new account of this provider.
      */
     static getCreateAccountWindowUrl() {
-        return "chrome://dav4tbsync/content/manager/createAccount.xhtml";
+        return "/content/manager/createAccount.xhtml";
     }
 
 
@@ -153,7 +127,7 @@ var Base = class {
      * (chrome://tbsync/content/manager/editAccount.xhtml)
      */
     static getEditAccountOverlayUrl() {
-        return "chrome://dav4tbsync/content/manager/editAccountOverlay.xhtml";
+        return "/content/manager/editAccountOverlay.xhtml";
     }
 
 
@@ -178,7 +152,6 @@ var Base = class {
             "serviceproviderRevision" : 0,
 
             "user" : "",
-            "https" : true, //deprecated, because this is part of the URL now
             "createdWithProviderVersion" : "0",
             "syncGroups" : false,
             }; 
@@ -219,9 +192,9 @@ var Base = class {
      * Is called everytime an account of this provider is enabled in the
      * manager UI.
      */
-    static onEnableAccount(accountData) {
-        accountData.resetAccountProperty("calDavPrincipal");
-        accountData.resetAccountProperty("cardDavPrincipal");
+    static onEnableAccount(accountID) {
+        TbSync.accounts.resetAccountProperty(accountID, "calDavPrincipal");
+        TbSync.accounts.resetAccountProperty(accountID, "cardDavPrincipal");
     }
 
 
@@ -229,7 +202,7 @@ var Base = class {
      * Is called everytime an account of this provider is disabled in the
      * manager UI.
      */
-    static onDisableAccount(accountData) {
+    static onDisableAccount(accountID) {
     }
 
 
@@ -237,23 +210,12 @@ var Base = class {
      * Is called everytime an account of this provider is deleted in the
      * manager UI.
      */
-    static onDeleteAccount(accountData) {
-        dav.network.getAuthData(accountData).removeLoginData();
+    static onDeleteAccount(accountID) {
+        dav.network.getAuthData(accountID).removeLoginData();
     }
 
 
-    /**
-     * Implement this method, if this provider should add additional entries
-     * to the autocomplete list while typing something into the address field
-     * of the message composer.
-     */
-    static async abAutoComplete(accountData, currentQuery)  {
-        /**
-         * Encode the string passed as value into an addressbook search term.
-         * The '(' and ')' characters are special for the addressbook
-         * search query language, but are not escaped in encodeURIComponent()
-         * so must be done manually on top of it.
-         */
+    /*static async abAutoComplete(accountID, currentQuery)  {
         function encodeABTermValue(aString) {
             return encodeURIComponent(aString)
                 .replace(/\(/g, "%28")
@@ -305,7 +267,7 @@ var Base = class {
                             entries.push({
                                 value: card.getProperty("DisplayName", "") + " <"+ card.getProperty("DisplayName", "") +">", 
                                 comment: "",
-                                icon: dav.Base.getProviderIcon(16, accountData),
+                                icon: provider.getProviderIcon(16, accountData),
                                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1653213
                                 style: "dav4tbsync-abook",
                                 popularityIndex: parseInt(card.getProperty("PopularityIndex", "0")),
@@ -325,9 +287,9 @@ var Base = class {
                                     comment: emailData[i].meta
                                                         .filter(entry => ["PREF","HOME","WORK"].includes(entry))
                                                         .map(entry => entry.toUpperCase() != "PREF" ? entry.toUpperCase() : entry.toLowerCase()).sort()
-                                                        .map(entry => TbSync.getString("autocomplete." + entry.toUpperCase() , "dav"))
+                                                        .map(entry => messenger.i18n.getMessage("autocomplete." + entry.toUpperCase()))
                                                         .join(", "),
-                                    icon: dav.Base.getProviderIcon(16, accountData),
+                                    icon: provider.getProviderIcon(16, accountData),
                                     // https://bugzilla.mozilla.org/show_bug.cgi?id=1653213
                                     style: "dav4tbsync-abook",				    
                                     popularityIndex: parseInt(card.getProperty("PopularityIndex", "0")),
@@ -351,22 +313,22 @@ var Base = class {
         });
 
         return entries;
-    }
+    }*/
 
 
     /**
      * Returns all folders of the account, sorted in the desired order.
      * The most simple implementation is to return accountData.getAllFolders();
      */
-    static getSortedFolders(accountData) {
-        let folders = accountData.getAllFolders();
+    static getSortedFolders(accountID) {
+        let folders = TbSync.folders.getAllFolders(accountID);
 
         // we can only sort arrays, so we create an array of objects which must
         // contain the sort key and the associated folder
         let toBeSorted = [];
-        for (let folder of folders) {
+        for (let folderID of folders) {
             let t = 100;
-            switch (folder.getFolderProperty("type")) {
+            switch (TbSync.folders.getFolderProperty(folderID, "type")) {
                 case "carddav": 
                     t+=0; 
                     break;
@@ -381,11 +343,11 @@ var Base = class {
                     break;
             }
 
-            if (folder.getFolderProperty("shared")) {
+            if (TbSync.folders.getFolderProperty(folderID, "shared")) {
                 t+=100;
             }
             
-            toBeSorted.push({"key": t.toString() + folder.getFolderProperty("foldername"), "folder": folder});
+            toBeSorted.push({"key": t.toString() + TbSync.folders.getFolderProperty(folderID, "foldername"), "folderID": folderID});
         }
         
         //sort
@@ -406,7 +368,7 @@ var Base = class {
      * a countdown to the connection timeout, while waiting for an answer from
      * the server. Only syncstates which start with "send." will trigger this.
      */
-    static getConnectionTimeout(accountData) {
+    static getConnectionTimeout(accountID) {
         return dav.sync.prefSettings.getIntPref("timeout");
     }
     
@@ -474,18 +436,14 @@ var Base = class {
     }
 }
 
-
-
-
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 // * TargetData implementation
 // * Using TbSyncs advanced address book TargetData 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-var TargetData_addressbook = class extends TbSync.addressbook.AdvancedTargetData {
+var TargetData_addressbook = class {
     constructor(folderData) {
-        super(folderData);
+        //super(folderData);
     }
   
     // define a card property, which should be used for the changelog
@@ -584,9 +542,9 @@ var TargetData_addressbook = class extends TbSync.addressbook.AdvancedTargetData
 // * Using TbSyncs advanced calendar TargetData 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-var TargetData_calendar = class extends TbSync.lightning.AdvancedTargetData {
+var TargetData_calendar = class {
     constructor(folderData) {
-        super(folderData);
+        //super(folderData);
     }       
     // The calendar target does not support a custom primaryKeyField, because
     // the lightning implementation only allows to search for items via UID.
@@ -763,7 +721,7 @@ var StandardFolderList = class {
      */ 
     static getAttributesRoAcl(folderData) {
         return {
-            label: TbSync.getString("acl.readonly", "dav"),
+            label: messenger.i18n.getMessage("acl.readonly"),
         };
     }
     
@@ -778,20 +736,52 @@ var StandardFolderList = class {
     static getAttributesRwAcl(folderData) {
         let acl = parseInt(folderData.getFolderProperty("acl"));
         let acls = [];
-        if (acl & 0x2) acls.push(TbSync.getString("acl.modify", "dav"));
-        if (acl & 0x4) acls.push(TbSync.getString("acl.add", "dav"));
-        if (acl & 0x8) acls.push(TbSync.getString("acl.delete", "dav"));
-        if (acls.length == 0)  acls.push(TbSync.getString("acl.none", "dav"));
+        if (acl & 0x2) acls.push(messenger.i18n.getMessage("acl.modify"));
+        if (acl & 0x4) acls.push(messenger.i18n.getMessage("acl.add"));
+        if (acl & 0x8) acls.push(messenger.i18n.getMessage("acl.delete"));
+        if (acls.length == 0)  acls.push(messenger.i18n.getMessage("acl.none"));
 
         return {
-            label: TbSync.getString("acl.readwrite::"+acls.join(", "), "dav"),
+            label: messenger.i18n.getMessage("acl.readwrite::"+acls.join(", ")),
             disabled: (acl & 0x7) != 0x7,
         }             
     }
 }
 
-Services.scriptloader.loadSubScript("chrome://dav4tbsync/content/includes/sync.js", this, "UTF-8");
-Services.scriptloader.loadSubScript("chrome://dav4tbsync/content/includes/abUI.js", this, "UTF-8");
-Services.scriptloader.loadSubScript("chrome://dav4tbsync/content/includes/tools.js", this, "UTF-8");
-Services.scriptloader.loadSubScript("chrome://dav4tbsync/content/includes/network.js", this, "UTF-8");
-Services.scriptloader.loadSubScript("chrome://dav4tbsync/content/includes/vcard/vcard.js", this, "UTF-8");
+
+
+
+
+
+
+async function main() {
+    // Setup local storage for our own preferences.
+    localStorageHandler.init({
+        maxitems: 50,
+        timeout: 90000,
+        "clientID.type": "TbSync",
+        "clientID.useragent": "Thunderbird CalDAV/CardDAV",
+        googlesupport: false,
+        enforceUniqueCalendarUrls: false,
+        OAuth2_ClientID: "689460414096-e4nddn8tss5c59glidp4bc0qpeu3oper.apps.googleusercontent.com",
+        OAuth2_ClientSecret: "LeTdF3UEpCvP1V3EBygjP-kl",
+    });
+    
+    // Enable listeners for messaging based storage access, which
+    // takes care of default handling.
+    localStorageHandler.enableListeners();
+
+    // Create the TbSync object.
+    let tbSync = new TbSync(new Base());
+    
+    // Connect to TbSync. Resolves after the first connection has been
+    // established. There is no need to await this call. Just calling it will
+    // setup all needed listeners to be able to (re-) establish the connection.
+    // Use tbSync.isConnected to check wether connection is active.
+    await tbSync.connect();
+    
+    console.log(tbSync.isConnected);    
+    console.log(await tbSync.portSend("something"));
+}
+
+main();

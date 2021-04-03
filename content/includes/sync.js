@@ -9,6 +9,11 @@
 
 "use strict";
 
+import { ui } from './abUI.js';
+import { tools } from './tools.js';
+import { network } from './network.js';
+import * as vCard from './vcard/vcard.js';
+
 var sync = {
 
     finish: function (aStatus = "", msg = "", details = "") {
@@ -53,7 +58,7 @@ var sync = {
         return e; 
     }, 
 
-    prefSettings: Services.prefs.getBranch("extensions.dav4tbsync."),
+    //prefSettings: Services.prefs.getBranch("extensions.dav4tbsync."),
 
     ns: {
         d: "DAV:",
@@ -908,3 +913,5 @@ var sync = {
         return (permissionErrors > 0 ? 0 - permissionErrors : syncData.progressData.done);
     },
 }
+
+export default sync;

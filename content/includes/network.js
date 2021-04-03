@@ -8,11 +8,11 @@
 
 "use strict";
 
-var { HttpRequest } = ChromeUtils.import("chrome://tbsync/content/HttpRequest.jsm");
-var { OAuth2 } = ChromeUtils.import("resource:///modules/OAuth2.jsm");
-const { DNS } = ChromeUtils.import("resource:///modules/DNS.jsm");
+//var { HttpRequest } = ChromeUtils.import("chrome://tbsync/content/HttpRequest.jsm");
+//var { OAuth2 } = ChromeUtils.import("resource:///modules/OAuth2.jsm");
+//const { DNS } = ChromeUtils.import("resource:///modules/DNS.jsm");
 
-var network = {
+export var network = {
   
   getAuthData: function(accountData) {
       let connection = {

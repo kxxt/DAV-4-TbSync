@@ -8,7 +8,7 @@
 
 "use strict";
 
-var tools = {
+export var tools = {
     
     getEmailsFromCard: function (aCard) { //return array of objects {meta, value}
         let emailData = [];

@@ -8,7 +8,7 @@
 
 "use strict";
 
-var ui = {
+export var ui = {
 
     getUriFromDirectoryId: function(ownerId) {
         let directories = MailServices.ab.directories;
