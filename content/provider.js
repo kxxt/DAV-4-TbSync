@@ -18,20 +18,28 @@ import { TbSync } from './includes/tbsync/tbsync.js';
 /**
  * Implementing the TbSync interface for external provider extensions.
  */
-let Base = class {
-    /**
-     * Called during load of external provider extension to init provider.
+var Base = class {
+    constructor(provider, addon) {
+        this.provider = provider;
+        this.addon = addon;
+    }
+
+  /**
+     * Called after connection to TbSync has been established.
      */
-    async load() {
+    async onConnect() {
+        console.log(`TbSync established connection to ${this.addon.id}`);
+
         // openWindows is state data and needs to be managed in a central background message hub
         this.openWindows = {};
     }
 
-
     /**
-     * Called during unload of external provider extension to unload provider.
+     * Called after connection to TbSync has been terminated.
      */
-    async unload() {
+    async onDisconnect() {                
+        console.log(`TbSync terminated connection to ${this.addon.id}`);
+
         // Close all open windows of this provider.
         for (let id in this.openWindows) {
           if (this.openWindows.hasOwnProperty(id)) {
@@ -43,7 +51,6 @@ let Base = class {
           }
         }
     }
-
 
     /**
      * Returns string for the name of provider for the add account menu.
@@ -73,11 +80,11 @@ let Base = class {
         
         switch (size) {
             case 16:
-                return "/content/skin/"+root+"16.png";
+                return messenger.runtime.getURL("content/skin/"+root+"16.png");
             case 32:
-                return "/content/skin/"+root+"32.png";
+                return messenger.runtime.getURL("content/skin/"+root+"32.png");
             default :
-                return "/content/skin/"+root+"48.png";
+                return messenger.runtime.getURL("content/skin/"+root+"48.png");
         }
     }
 
@@ -85,7 +92,7 @@ let Base = class {
     /**
      * Returns a list of sponsors, they will be sorted by the index
      */
-    static getSponsors() {
+    async getSponsors() {
         return {
             "Thoben, Marc" : {name: "Marc Thoben", description: "Zimbra", icon: "", link: "" },
             "Biebl, Michael" : {name: "Michael Biebl", description: "Nextcloud", icon: "", link: "" },
@@ -98,7 +105,7 @@ let Base = class {
     /**
      * Returns the url of a page with details about contributors (used in the manager UI)
      */
-    static getContributorsUrl() {
+    async getContributorsUrl() {
         return "https://github.com/jobisoft/DAV-4-TbSync/blob/master/CONTRIBUTORS.md";
     }
 
@@ -106,7 +113,7 @@ let Base = class {
     /**
      * Returns the email address of the maintainer (used for bug reports).
      */
-    static getMaintainerEmail() {
+    async getMaintainerEmail() {
         return "john.bieling@gmx.de";
     }
 
@@ -117,8 +124,8 @@ let Base = class {
      * The URL will be opened via openDialog(), when the user wants to create a
      * new account of this provider.
      */
-    static getCreateAccountWindowUrl() {
-        return "/content/manager/createAccount.xhtml";
+    async getCreateAccountWindowUrl() {
+        return messenger.runtime.getURL("content/manager/createAccount.xhtml");
     }
 
 
@@ -126,8 +133,8 @@ let Base = class {
      * Returns overlay XUL URL of the edit account dialog
      * (chrome://tbsync/content/manager/editAccount.xhtml)
      */
-    static getEditAccountOverlayUrl() {
-        return "/content/manager/editAccountOverlay.xhtml";
+    async getEditAccountOverlayUrl() {
+        return messenger.runtime.getURL("content/manager/editAccountOverlay.xhtml");
     }
 
 
@@ -136,7 +143,7 @@ let Base = class {
      * accounts database with the default value if not yet stored in the 
      * database.
      */
-    static getDefaultAccountEntries() {
+    async getDefaultAccountEntries() {
         let row = {
             "useCalendarCache" : true,
             "calDavHost" : "",            
@@ -163,7 +170,7 @@ let Base = class {
      * Return object which contains all possible fields of a row in the folder 
      * database with the default value if not yet stored in the database.
      */
-    static getDefaultFolderEntries() {
+    async getDefaultFolderEntries() {
         let folder = {
             // different folders (caldav/carddav) can be stored on different 
             // servers (as with yahoo, icloud, gmx, ...), so we need to store
@@ -192,7 +199,7 @@ let Base = class {
      * Is called everytime an account of this provider is enabled in the
      * manager UI.
      */
-    static onEnableAccount(accountID) {
+    async onEnableAccount(accountID) {
         TbSync.accounts.resetAccountProperty(accountID, "calDavPrincipal");
         TbSync.accounts.resetAccountProperty(accountID, "cardDavPrincipal");
     }
@@ -202,7 +209,7 @@ let Base = class {
      * Is called everytime an account of this provider is disabled in the
      * manager UI.
      */
-    static onDisableAccount(accountID) {
+    async onDisableAccount(accountID) {
     }
 
 
@@ -210,7 +217,7 @@ let Base = class {
      * Is called everytime an account of this provider is deleted in the
      * manager UI.
      */
-    static onDeleteAccount(accountID) {
+    async onDeleteAccount(accountID) {
         dav.network.getAuthData(accountID).removeLoginData();
     }
 
@@ -320,7 +327,7 @@ let Base = class {
      * Returns all folders of the account, sorted in the desired order.
      * The most simple implementation is to return accountData.getAllFolders();
      */
-    static getSortedFolders(accountID) {
+    async getSortedFolders(accountID) {
         let folders = TbSync.folders.getAllFolders(accountID);
 
         // we can only sort arrays, so we create an array of objects which must
@@ -368,7 +375,7 @@ let Base = class {
      * a countdown to the connection timeout, while waiting for an answer from
      * the server. Only syncstates which start with "send." will trigger this.
      */
-    static getConnectionTimeout(accountID) {
+    async getConnectionTimeout(accountID) {
         return dav.sync.prefSettings.getIntPref("timeout");
     }
     
@@ -376,7 +383,7 @@ let Base = class {
     /**
      * Is called if TbSync needs to synchronize the folder list.
      */
-    static async syncFolderList(syncData, syncJob, syncRunNr) {        
+    async syncFolderList(syncData, syncJob, syncRunNr) {        
         // Recommendation: Put the actual function call inside a try catch, to
         // ensure returning a proper StatusData object, regardless of what
         // happens inside that function. You may also throw custom errors
@@ -403,7 +410,7 @@ let Base = class {
     /**
      * Is called if TbSync needs to synchronize a folder.
      */
-    static async syncFolder(syncData, syncJob, syncRunNr) {
+    async syncFolder(syncData, syncJob, syncRunNr) {
         // Recommendation: Put the actual function call inside a try catch, to
         // ensure returning a proper StatusData object, regardless of what
         // happens inside that function. You may also throw custom errors
@@ -772,7 +779,8 @@ async function main() {
     localStorageHandler.enableListeners();
 
     // Create the TbSync object.
-    let tbSync = new TbSync(new Base());
+    let addon = await messenger.management.getSelf();
+    let tbSync = new TbSync(new Base("dav", addon));
     
     // Connect to TbSync. Resolves after the first connection has been
     // established. There is no need to await this call. Just calling it will
@@ -780,7 +788,6 @@ async function main() {
     // Use tbSync.isConnected to check wether connection is active.
     await tbSync.connect();
     
-    console.log(tbSync.isConnected);    
     console.log(await tbSync.portSend("something"));
 }
 

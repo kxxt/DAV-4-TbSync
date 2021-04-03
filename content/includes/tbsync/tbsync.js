@@ -19,14 +19,8 @@ export var TbSync = class {
         
         this.base = base;
     }
-    
-    get isConnected() {
-        return (this.port != null);
-    }
-    
-    async connect() {
-        this.addon = await messenger.management.getSelf();
         
+    async connect() {        
         if (!this._connectPromise) {
             this._connectPromise = new Promise(resolve => {
                 // Wait for connections attempts from TbSync.
@@ -41,9 +35,10 @@ export var TbSync = class {
                         this.port.onDisconnect.addListener(() => {
                             this.port.onMessage.removeListener(this.portReceiver.bind(this));
                             this.port = null;
+                            this.base.onDisconnect();
                         });
-                        console.log(`${this.addon.name} established connection with TbSync`);
-                        resolve(true);
+                        // Base.onConnect is initiated from TbSync
+                        resolve();
                     }
                 });
 
@@ -51,18 +46,20 @@ export var TbSync = class {
                 function introduction(addon) {
                     if (addon.id != TBSYNC_ID)
                         return;
-                    messenger.runtime.sendMessage(TBSYNC_ID, "InitiateConnect");
+                    messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.base.provider });
                 }
-                messenger.management.onInstalled.addListener(introduction);
-                messenger.management.onEnabled.addListener(introduction);
+                messenger.management.onInstalled.addListener(introduction.bind(this));
+                messenger.management.onEnabled.addListener(introduction.bind(this));
 
                 // Inform TbSync that we exists and initiate connections.
-                messenger.management.get(TBSYNC_ID).then(tbSyncAddon => {
-                    if (tbSyncAddon && tbSyncAddon.enabled) {
-                        // Send a single ping to trigger a connection request.
-                        messenger.runtime.sendMessage(TBSYNC_ID, "InitiateConnect");
-                    }
-                });
+                messenger.management.get(TBSYNC_ID)
+                    .then(tbSyncAddon => {
+                        if (tbSyncAddon && tbSyncAddon.enabled) {
+                            // Send a single ping to trigger a connection request.
+                            messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.base.provider });
+                        }
+                    })
+                    .catch((e) => {});
             });
         }        
         return this._connectPromise;
@@ -70,45 +67,43 @@ export var TbSync = class {
 
     async processRequest(request) {
         switch (request.command) {
-            case "load": 
-                return await this.base.load();
-            case "unload":
-                return await this.base.unload();
-            case "getProviderName":
+            case "Base.onConnect": 
+                return await this.base.onConnect();
+            case "Base.getProviderName":
                 return await this.base.getProviderName();
-            case "getApiVersion":
+            case "Base.getApiVersion":
                 return await await this.base.getApiVersion();
-            case "getProviderIcon":
+            case "Base.getProviderIcon":
                 return await this.base.getProviderIcon(request.size, request.accountData);
-            case "getSponsors":
+            case "Base.getSponsors":
                 return await this.base.getSponsors();
-            case "getContributorsUrl":
+            case "Base.getContributorsUrl":
                 return await this.base.getContributorsUrl();
-            case "getMaintainerEmail":
+            case "Base.getMaintainerEmail":
                 return await this.base.getMaintainerEmail();
-            case "getCreateAccountWindowUrl":
+            case "Base.getCreateAccountWindowUrl":
                 return await this.base.getCreateAccountWindowUrl();
-            case "getEditAccountOverlayUrl":
+            case "Base.getEditAccountOverlayUrl":
                 return await this.base.getEditAccountOverlayUrl();
-            case "getDefaultAccountEntries":
+            case "Base.getDefaultAccountEntries":
                 return await this.base.getDefaultAccountEntries();
-            case "getDefaultFolderEntries":
+            case "Base.getDefaultFolderEntries":
                 return await this.base.getDefaultFolderEntries();
-            case "onEnableAccount":
+            case "Base.onEnableAccount":
                 return await this.base.onEnableAccount(request.accountID);
-            case "onDisableAccount":
+            case "Base.onDisableAccount":
                 return await this.base.onDisableAccount(request.accountID);
-            case "onDeleteAccount":
+            case "Base.onDeleteAccount":
                 return await this.base.onDeleteAccount(request.accountID);
-            case "abAutoComplete":
+            case "Base.abAutoComplete":
                 return await this.base.abAutoComplete(request.accountID, request.currentQuery);
-            case "getSortedFolders":
+            case "Base.getSortedFolders":
                 return await this.base.getSortedFolders(request.accountID);
-            case "getConnectionTimeout":
+            case "Base.getConnectionTimeout":
                 return await this.base.getConnectionTimeout(request.accountID);
-            case "syncFolderList":
+            case "Base.syncFolderList":
                 return await this.base.syncFolderList(request.syncData, request.syncJob, request.syncRunNr);
-            case "syncFolder":
+            case "Base.syncFolder":
                 return await this.base.syncFolderList(request.syncData, request.syncJob, request.syncRunNr);
         }
     }
@@ -120,7 +115,7 @@ export var TbSync = class {
             return;
         
         const {origin, id, data} = message;
-        if (origin == this.addon.id) {
+        if (origin == this.base.addon.id) {
             // This is an answer for one of our own requests.
             const resolve = this.portMap.get(id);
             this.portMap.delete(id);
@@ -136,7 +131,7 @@ export var TbSync = class {
       return new Promise(resolve => {
         const id = ++this.portMessageId;
         this.portMap.set(id, resolve);
-        this.port.postMessage({origin: this.addon.id, id, data});
+        this.port.postMessage({origin: this.base.addon.id, id, data});
       });
     }
     
