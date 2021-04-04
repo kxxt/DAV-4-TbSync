@@ -10,10 +10,7 @@
 
 // Mandatory import to be able to communicate with TbSync.
 import { TbSync } from './includes/tbsync/tbsync.js';
-
-// Either include all other imports here, or use ES6 style dependencies and let
-// each script include whatever it needs.
-// import * as dav from './includes/sync.js';
+import * as dav from './includes/sync.js';
 
 /**
  * Implementing the TbSync interface for external provider extensions.
@@ -72,7 +69,7 @@ var Base = class {
     async getProviderIcon(size, accountID = null) {
         let root = "sabredav";
         if (accountID) {
-            let serviceprovider = TbSync.accounts.getAccountProperty(accountID, "serviceprovider");
+            let serviceprovider = await this.tbSync.getAccountProperty(accountID, "serviceprovider");
             if (dav.sync.serviceproviders.hasOwnProperty(serviceprovider)) {
                 root = dav.sync.serviceproviders[serviceprovider].icon;
             }
@@ -200,8 +197,8 @@ var Base = class {
      * manager UI.
      */
     async onEnableAccount(accountID) {
-        TbSync.accounts.resetAccountProperty(accountID, "calDavPrincipal");
-        TbSync.accounts.resetAccountProperty(accountID, "cardDavPrincipal");
+        await TbSync.resetAccountProperty(accountID, "calDavPrincipal");
+        await TbSync.resetAccountProperty(accountID, "cardDavPrincipal");
     }
 
 
@@ -328,14 +325,14 @@ var Base = class {
      * The most simple implementation is to return accountData.getAllFolders();
      */
     async getSortedFolders(accountID) {
-        let folders = TbSync.folders.getAllFolders(accountID);
+        let folders = await TbSync.getAllFolders(accountID);
 
         // we can only sort arrays, so we create an array of objects which must
         // contain the sort key and the associated folder
         let toBeSorted = [];
         for (let folderID of folders) {
             let t = 100;
-            switch (TbSync.folders.getFolderProperty(folderID, "type")) {
+            switch (await TbSync.getFolderProperty(folderID, "type")) {
                 case "carddav": 
                     t+=0; 
                     break;
@@ -350,11 +347,11 @@ var Base = class {
                     break;
             }
 
-            if (TbSync.folders.getFolderProperty(folderID, "shared")) {
+            if (await TbSync.getFolderProperty(folderID, "shared")) {
                 t+=100;
             }
             
-            toBeSorted.push({"key": t.toString() + TbSync.folders.getFolderProperty(folderID, "foldername"), "folderID": folderID});
+            toBeSorted.push({"key": t.toString() + await TbSync.getFolderProperty(folderID, "foldername"), "folderID": folderID});
         }
         
         //sort
@@ -389,6 +386,7 @@ var Base = class {
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
+        return;
         
         try {
             await dav.sync.folderList(syncData);
@@ -416,7 +414,8 @@ var Base = class {
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
-
+        return;
+        
         // Limit auto sync rate, if google
         let isGoogle = (syncData.accountData.getAccountProperty("serviceprovider") == "google");
         let isDefaultGoogleApp = (Services.prefs.getDefaultBranch("extensions.dav4tbsync.").getCharPref("OAuth2_ClientID") == dav.sync.prefSettings.getCharPref("OAuth2_ClientID"));
@@ -787,8 +786,6 @@ async function main() {
     // setup all needed listeners to be able to (re-) establish the connection.
     // Use tbSync.isConnected to check wether connection is active.
     await tbSync.connect();
-    
-    console.log(await tbSync.portSend("something"));
 }
 
 main();

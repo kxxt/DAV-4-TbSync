@@ -18,6 +18,7 @@ export var TbSync = class {
         this.portMessageId = 0;
         
         this.Base = Base;
+        this.Base.tbSync = this;
     }
         
     async connect() {        
@@ -97,11 +98,58 @@ export var TbSync = class {
       });
     }
     
-    static getString(key, provider) {
-      return messenger.runtime.sendMessage(TBSYNC_ID, {
-          command: "getString",
-          key,
-          provider,
-      });
+    /*
+     * Wrapper functions to communicate with TbSync
+     */
+    getAccountProperty(accountID, property) {
+        return this.portSend({
+            command: "getAccountProperty",
+            parameters:[accountID, property]
+        });
     }
+    
+    setAccountProperty(accountID, property, value) {
+        return this.portSend({
+            command: "setAccountProperty",
+            parameters:[accountID, property, value]
+        });
+    }
+
+    resetAccountProperty(accountID, property) {
+        return this.portSend({
+            command: "resetAccountProperty",
+            parameters:[accountID, property]
+        });
+    }
+    
+    getAllFolders(accountID) {
+        return this.portSend({
+            command: "getAllFolders",
+            parameters:[accountID]
+        });
+    }
+    
+    getFolderProperty(folderID, property) {
+        return this.portSend({
+            command: "getFolderProperty",
+            parameters:[accountID, property]
+        });
+    }
+        
+    setFolderProperty(folderID, property, value) {
+        return this.portSend({
+            command: "setFolderProperty",
+            parameters:[accountID, property, value]
+        });
+    }
+
+    resetFolderProperty(folderID, property) {
+        return this.portSend({
+            command: "resetFolderProperty",
+            parameters:[accountID, property]
+        });
+    }
+
+/*    class StatusData {
+    }*/
 }
