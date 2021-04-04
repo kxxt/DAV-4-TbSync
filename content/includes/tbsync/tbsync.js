@@ -11,13 +11,13 @@
 const TBSYNC_ID = "tbsync@jobisoft.de";
 
 export var TbSync = class {
-    constructor(base) {
+    constructor(Base) {
         this.port = null;
         this.connectPromise = null;
         this.portMap = new Map();
         this.portMessageId = 0;
         
-        this.base = base;
+        this.Base = Base;
     }
         
     async connect() {        
@@ -35,7 +35,7 @@ export var TbSync = class {
                         this.port.onDisconnect.addListener(() => {
                             this.port.onMessage.removeListener(this.portReceiver.bind(this));
                             this.port = null;
-                            this.base.onDisconnect();
+                            this.Base.onDisconnect();
                         });
                         // Base.onConnect is initiated from TbSync
                         resolve();
@@ -46,7 +46,7 @@ export var TbSync = class {
                 function introduction(addon) {
                     if (addon.id != TBSYNC_ID)
                         return;
-                    messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.base.provider });
+                    messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.Base.provider });
                 }
                 messenger.management.onInstalled.addListener(introduction.bind(this));
                 messenger.management.onEnabled.addListener(introduction.bind(this));
@@ -56,56 +56,13 @@ export var TbSync = class {
                     .then(tbSyncAddon => {
                         if (tbSyncAddon && tbSyncAddon.enabled) {
                             // Send a single ping to trigger a connection request.
-                            messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.base.provider });
+                            messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.Base.provider });
                         }
                     })
                     .catch((e) => {});
             });
         }        
         return this._connectPromise;
-    }
-
-    async processRequest(request) {
-        switch (request.command) {
-            case "Base.onConnect": 
-                return await this.base.onConnect();
-            case "Base.getProviderName":
-                return await this.base.getProviderName();
-            case "Base.getApiVersion":
-                return await await this.base.getApiVersion();
-            case "Base.getProviderIcon":
-                return await this.base.getProviderIcon(request.size, request.accountData);
-            case "Base.getSponsors":
-                return await this.base.getSponsors();
-            case "Base.getContributorsUrl":
-                return await this.base.getContributorsUrl();
-            case "Base.getMaintainerEmail":
-                return await this.base.getMaintainerEmail();
-            case "Base.getCreateAccountWindowUrl":
-                return await this.base.getCreateAccountWindowUrl();
-            case "Base.getEditAccountOverlayUrl":
-                return await this.base.getEditAccountOverlayUrl();
-            case "Base.getDefaultAccountEntries":
-                return await this.base.getDefaultAccountEntries();
-            case "Base.getDefaultFolderEntries":
-                return await this.base.getDefaultFolderEntries();
-            case "Base.onEnableAccount":
-                return await this.base.onEnableAccount(request.accountID);
-            case "Base.onDisableAccount":
-                return await this.base.onDisableAccount(request.accountID);
-            case "Base.onDeleteAccount":
-                return await this.base.onDeleteAccount(request.accountID);
-            case "Base.abAutoComplete":
-                return await this.base.abAutoComplete(request.accountID, request.currentQuery);
-            case "Base.getSortedFolders":
-                return await this.base.getSortedFolders(request.accountID);
-            case "Base.getConnectionTimeout":
-                return await this.base.getConnectionTimeout(request.accountID);
-            case "Base.syncFolderList":
-                return await this.base.syncFolderList(request.syncData, request.syncJob, request.syncRunNr);
-            case "Base.syncFolder":
-                return await this.base.syncFolderList(request.syncData, request.syncJob, request.syncRunNr);
-        }
     }
     
     async portReceiver(message, port) {
@@ -115,14 +72,19 @@ export var TbSync = class {
             return;
         
         const {origin, id, data} = message;
-        if (origin == this.base.addon.id) {
+        if (origin == this.Base.addon.id) {
             // This is an answer for one of our own requests.
             const resolve = this.portMap.get(id);
             this.portMap.delete(id);
             resolve(data);
         } else {
             // This is a request from TbSync, process.
-            let rv = await this.processRequest(data);
+            let [mod,func] = data.command.split(".");
+            let parameters = Array.isArray(data.parameters) ? data.parameters : [];
+            let rv;
+            if (["Base"].includes(mod)) {
+                rv = await this[mod][func](...parameters);
+            }
             port.postMessage({origin, id, data: rv});
         }
     }    
@@ -131,7 +93,7 @@ export var TbSync = class {
       return new Promise(resolve => {
         const id = ++this.portMessageId;
         this.portMap.set(id, resolve);
-        this.port.postMessage({origin: this.base.addon.id, id, data});
+        this.port.postMessage({origin: this.Base.addon.id, id, data});
       });
     }
     
