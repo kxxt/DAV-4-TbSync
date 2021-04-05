@@ -54,7 +54,7 @@ var Provider = class {
      * Returns string for the name of provider for the add account menu.
      */
     async getProviderName() {
-        return messenger.i18n.getMessage("menu.name");
+        return await this.tbSync.getString("menu.name");
     }
 
 
@@ -504,7 +504,10 @@ var Provider = class {
      */ 
     async getAttributesRoAcl(folderID) {
         return {
-            label: messenger.i18n.getMessage("acl.readonly"),
+            // If you know this is a locale of this add-on, use i18n API directly.
+            // Otherwise use await this.tbSync.getString(), which will try to use the i18n
+            // API and if that fails, tries to get the locale from TbSync.
+            label: await this.tbSync.getString("acl.readonly"),
         };
     }
     
@@ -519,13 +522,13 @@ var Provider = class {
     async getAttributesRwAcl(accountID, folderID) {
         let acl = parseInt(await this.tbSync.getFolderProperty(accountID, folderID, "acl"));
         let acls = [];
-        if (acl & 0x2) acls.push(messenger.i18n.getMessage("acl.modify"));
-        if (acl & 0x4) acls.push(messenger.i18n.getMessage("acl.add"));
-        if (acl & 0x8) acls.push(messenger.i18n.getMessage("acl.delete"));
-        if (acls.length == 0)  acls.push(messenger.i18n.getMessage("acl.none"));
+        if (acl & 0x2) acls.push(await this.tbSync.getString("acl.modify"));
+        if (acl & 0x4) acls.push(await this.tbSync.getString("acl.add"));
+        if (acl & 0x8) acls.push(await this.tbSync.getString("acl.delete"));
+        if (acls.length == 0)  acls.push(await this.tbSync.getString("acl.none"));
 
         return {
-            label: messenger.i18n.getMessage("acl.readwrite::"+acls.join(", ")),
+            label: await this.tbSync.getString("acl.readwrite::"+acls.join(", ")),
             disabled: (acl & 0x7) != 0x7,
         }             
     }    
@@ -552,7 +555,7 @@ async function main() {
     // Connect to TbSync. Resolves after the first connection has been
     // established. There is no need to await this call. Just calling it will
     // setup all needed listeners to be able to (re-) establish the connection.
-    // Use tbSync.isConnected to check wether connection is active.
+    // provider.onConnect() will be called after connection has been established.
     await provider.tbSync.connect();
 }
 

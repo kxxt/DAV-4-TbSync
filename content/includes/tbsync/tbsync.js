@@ -204,6 +204,17 @@ export var TbSync = class {
         });
     }   
 
+    getString(msg) {
+        let str = messenger.i18n.getMessage(msg);
+        if (str != "") {
+          return str;
+        }
+        return this.portSend({
+            command: "getString",
+            parameters: [...arguments]
+        });
+  }   
+
 /*    class StatusData {
     }*/
 }
