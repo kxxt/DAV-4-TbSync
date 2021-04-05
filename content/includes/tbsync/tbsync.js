@@ -204,16 +204,30 @@ export var TbSync = class {
         });
     }   
 
-    getString(msg) {
-        let str = messenger.i18n.getMessage(msg);
-        if (str != "") {
-          return str;
-        }
-        return this.portSend({
+    async getString(key) {
+      //spezial treatment of strings with :: like status.httperror::403
+      let parts = key.split("::");
+      let localized = messenger.i18n.getMessage(parts[0]);
+  
+      if (!localized) {
+        localized = await this.portSend({
             command: "getString",
-            parameters: [...arguments]
+            parameters: [parts[0]]
         });
-  }   
+      }
+      
+      if (!localized) {
+        localized = key;
+      } else {
+        //replace placeholders in returned string
+        for (let i = 0; i<parts.length; i++) {
+          let regex = new RegExp( "##replace\."+i+"##", "g");
+          localized = localized.replace(regex, parts[i]);
+        }
+      }
+
+      return localized;
+    }
 
 /*    class StatusData {
     }*/

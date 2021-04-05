@@ -504,9 +504,6 @@ var Provider = class {
      */ 
     async getAttributesRoAcl(folderID) {
         return {
-            // If you know this is a locale of this add-on, use i18n API directly.
-            // Otherwise use await this.tbSync.getString(), which will try to use the i18n
-            // API and if that fails, tries to get the locale from TbSync.
             label: await this.tbSync.getString("acl.readonly"),
         };
     }
