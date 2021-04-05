@@ -218,7 +218,7 @@ var Provider = class {
      * manager UI.
      */
     async onDeleteAccount(accountID) {
-        dav.network.getAuthData(accountID).removeLoginData();
+        //dav.network.getAuthData(accountID).removeLoginData();
     }
 
 
@@ -377,7 +377,7 @@ var Provider = class {
      * the server. Only syncstates which start with "send." will trigger this.
      */
     async getConnectionTimeout(accountID) {
-        return dav.sync.prefSettings.getIntPref("timeout");
+        return localStorageHandler.getPref("timeout");
     }
     
 
