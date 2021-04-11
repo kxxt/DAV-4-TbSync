@@ -324,19 +324,14 @@ var Provider = class {
 
 
     /**
-     * Returns all folders of the account, sorted in the desired order.
-     * The most simple implementation is to return accountData.getAllFolders();
+     * Returns all folders of the account, sorted in the desired order including
+     * all data needed for the FolderListView.
      */
-    async getSortedFolders(accountID) {
-        let folders = await this.tbSync.getAllFolders(accountID);
-        
-        // we can only sort arrays, so we create an array of objects which must
-        // contain the sort key and the associated folder
-        let toBeSorted = [];
-        for (let folderID of folders) {
+    async getSortedFolders(accountObject) {       
+        let folders = [];
+        for (let folderID of Object.keys(accountObject.folders)) {
             let t = 100;
-            let { type, shared, foldername } = await this.tbSync.getFolderProperties(accountID, folderID, ["type", "shared", "foldername"]);
-            switch (type) {
+            switch (accountObject.folders[folderID].type) {
                 case "carddav": 
                     t+=0; 
                     break;
@@ -351,23 +346,25 @@ var Provider = class {
                     break;
             }
 
-            if (shared) {
+            if (accountObject.folders[folderID].shared) {
                 t+=100;
             }
             
-            toBeSorted.push({"key": t.toString() + foldername, "folderID": folderID});
+            folders.push({
+                "key": t.toString() + accountObject.folders[folderID].foldername, 
+                "folderID": folderID,
+                "typeImage": await this.getTypeImage(accountObject, folderID),
+                "folderDisplayName": await this.getFolderDisplayName(accountObject, folderID),
+                "attributesRoAcl": await this.getAttributesRoAcl(accountObject, folderID),
+                "attributesRwAcl": await this.getAttributesRwAcl(accountObject, folderID),
+            });
         }
         
         //sort
-        toBeSorted.sort(function(a,b) {
+        folders.sort(function(a,b) {
             return  a.key > b.key;
         });
-        
-        let sortedFolders = [];
-        for (let sortObj of toBeSorted) {
-            sortedFolders.push(sortObj.folderID);
-        }
-        return sortedFolders;
+        return folders;
     }
 
 
@@ -448,7 +445,7 @@ var Provider = class {
     
     
     /*
-     * FolderList
+     * FolderList (local, could be moved elsewhere)
      */
     
     /**
@@ -464,22 +461,26 @@ var Provider = class {
      * Return the icon used in the folderlist to represent the different folder
      * types.
      */
-    async getTypeImage(accountID, folderID) {
+    async getTypeImage(accountObject, folderID) {
         let src = "";
-        let { type, shared } = await this.tbSync.getFolderProperties(accountID, folderID, ["type", "shared"]);
+        let { type, shared } = accountObject.folders[folderID];
 
         switch (type) {
             case "carddav":
                 if (shared) {
-                    return messenger.runtime.getURL("content/skin/contacts16_shared.png");
+                    // Use relative URL to use icons provided by TbSync.
+                    return "content/skin/contacts16_shared.png";
                 } else {
-                    return messenger.runtime.getURL("content/skin/contacts16.png");
+                    // Use relative URL to use icons provided by TbSync.
+                    return "content/skin/contacts16.png";
                 }
             case "caldav":
                 if (shared) {
-                    return messenger.runtime.getURL("content/skin/calendar16_shared.png");
+                    // Use relative URL to use icons provided by TbSync.
+                    return "content/skin/calendar16_shared.png";
                 } else {
-                    return messenger.runtime.getURL("content/skin/calendar16.png");
+                    // Use relative URL to use icons provided by TbSync.
+                    return "content/skin/calendar16.png";
                 }
             case "ics":
                 return messenger.runtime.getURL("content/skin/ics16.png");
@@ -490,8 +491,8 @@ var Provider = class {
     /**
      * Return the name of the folder shown in the folderlist.
      */ 
-    async getFolderDisplayName(accountID, folderID) {
-        return this.tbSync.getFolderProperty(accountID, folderID, "foldername");
+    async getFolderDisplayName(accountObject, folderID) {
+        return accountObject.folders[folderID]["foldername"];
     }
 
 
@@ -502,7 +503,7 @@ var Provider = class {
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRoAcl(folderID) {
+    async getAttributesRoAcl(accountObject, folderID) {
         return {
             label: await this.tbSync.getString("acl.readonly"),
         };
@@ -516,8 +517,8 @@ var Provider = class {
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRwAcl(accountID, folderID) {
-        let acl = parseInt(await this.tbSync.getFolderProperty(accountID, folderID, "acl"));
+    async getAttributesRwAcl(accountObject, folderID) {
+        let acl = parseInt( accountObject.folders[folderID]["acl"]);
         let acls = [];
         if (acl & 0x2) acls.push(await this.tbSync.getString("acl.modify"));
         if (acl & 0x4) acls.push(await this.tbSync.getString("acl.add"));
