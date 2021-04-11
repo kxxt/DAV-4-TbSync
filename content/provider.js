@@ -123,7 +123,7 @@ var Provider = class {
      * new account of this provider.
      */
     async getCreateAccountWindowUrl() {
-        return messenger.runtime.getURL("content/manager/createAccount.xhtml");
+        return messenger.runtime.getURL("content/manager/createAccount.xhtml"); //TODO
     }
 
 
@@ -132,7 +132,7 @@ var Provider = class {
      * (chrome://tbsync/content/manager/editAccount.xhtml)
      */
     async getEditAccountOverlayUrl() {
-        return messenger.runtime.getURL("content/manager/editAccountOverlay.xhtml");
+        return messenger.runtime.getURL("content/manager/editAccountOverlay.xhtml"); //TODO
     }
 
 
@@ -453,9 +453,9 @@ var Provider = class {
      * show/hide custom menu options based on selected folder. During an active
      * sync, folderData will be null.
      */
-    async onContextMenuShowing(window, accountID, folderID) {
+    async onContextMenuShowing(accountObject, folderID) {
+        // TODO
     }
-
 
     /**
      * Return the icon used in the folderlist to represent the different folder
@@ -487,14 +487,12 @@ var Provider = class {
         }
     }
 
-
     /**
      * Return the name of the folder shown in the folderlist.
      */ 
     async getFolderDisplayName(accountObject, folderID) {
         return accountObject.folders[folderID]["foldername"];
     }
-
 
     /**
      * Return the attributes for the ACL RO (readonly) menu element per folder.
