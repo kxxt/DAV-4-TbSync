@@ -352,6 +352,7 @@ var Provider = class {
             
             folders.push({
                 "key": t.toString() + accountObject.folders[folderID].foldername, 
+                "accountID": accountObject.accountID,
                 "folderID": folderID,
                 "typeImage": await this.getTypeImage(accountObject, folderID),
                 "folderDisplayName": await this.getFolderDisplayName(accountObject, folderID),
