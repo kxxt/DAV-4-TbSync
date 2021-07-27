@@ -16,7 +16,7 @@ var tbSyncEditAccountOverlay = {
         this.accountData = accountData;
 
         let serviceprovider = this.accountData.getAccountProperty("serviceprovider");
-        let isServiceProvider = dav.sync.serviceproviders.hasOwnProperty(serviceprovider);
+        let isServiceProvider = true;//dav.sync.serviceproviders.hasOwnProperty(serviceprovider);
         
         // special treatment for configuration label, which is a permanent setting and will not change by switching modes
         let configlabel = window.document.getElementById("tbsync.accountsettings.label.config");

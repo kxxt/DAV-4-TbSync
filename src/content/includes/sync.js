@@ -14,7 +14,7 @@ import { tools } from './tools.js';
 import { network } from './network.js';
 import * as vCard from './vcard/vcard.js';
 
-export var sync = {
+var sync = {
 
     finish: function (aStatus = "", msg = "", details = "") {
         let status = TbSync.StatusData.SUCCESS
@@ -914,4 +914,4 @@ export var sync = {
     },
 }
 
-export default sync;
+export { sync, ui, tools, network, vCard };

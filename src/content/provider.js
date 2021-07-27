@@ -9,7 +9,7 @@
 "use strict";
 
 // Mandatory import to be able to communicate with TbSync.
-import { TbSync } from './includes/tbsync/tbsync.js';
+import { TbSync, StatusData } from './includes/tbsync/tbsync.js';
 import * as dav from './includes/sync.js';
 
 /**
@@ -28,7 +28,8 @@ var Provider = class {
     async onConnect() {
         console.log(`TbSync established connection to ${this.addon.id}`);
 
-        // openWindows is state data and needs to be managed in a central background message hub
+        // openWindows is state data and needs to be managed in a central
+        // background message hub
         this.openWindows = {};
     }
 
@@ -57,12 +58,10 @@ var Provider = class {
         return await this.tbSync.getString("menu.name");
     }
 
-
     /**
-     * Returns version of the TbSync API this provider is using
+     * Returns version of the TbSync API this provider is using.
      */
     async getApiVersion() { return "3.0"; }
-
 
     /**
      * Returns location of a provider icon.
@@ -86,35 +85,12 @@ var Provider = class {
         }
     }
 
-
-    /**
-     * Returns a list of sponsors, they will be sorted by the index
-     */
-    async getSponsors() {
-        return {
-            "Thoben, Marc" : {name: "Marc Thoben", description: "Zimbra", icon: "", link: "" },
-            "Biebl, Michael" : {name: "Michael Biebl", description: "Nextcloud", icon: "", link: "" },
-            "László, Kovács" : {name: "Kovács László", description : "Radicale", icon: "", link: "" },
-            "Lütticke, David" : {name: "David Lütticke", description : "", icon: "", link: "" },
-        };
-    }
-
-
-    /**
-     * Returns the url of a page with details about contributors (used in the manager UI)
-     */
-    async getContributorsUrl() {
-        return "https://github.com/jobisoft/DAV-4-TbSync/blob/master/CONTRIBUTORS.md";
-    }
-
-
     /**
      * Returns the email address of the maintainer (used for bug reports).
      */
     async getMaintainerEmail() {
         return "john.bieling@gmx.de";
     }
-
 
     /**
      * Returns URL of the new account window.
@@ -126,7 +102,6 @@ var Provider = class {
         return messenger.runtime.getURL("content/manager/createAccount.xhtml"); //TODO
     }
 
-
     /**
      * Returns overlay XUL URL of the edit account dialog
      * (chrome://tbsync/content/manager/editAccount.xhtml)
@@ -134,7 +109,6 @@ var Provider = class {
     async getEditAccountOverlayUrl() {
         return messenger.runtime.getURL("content/manager/editAccountOverlay.xhtml"); //TODO
     }
-
 
     /**
      * Return object which contains all possible fields of a row in the
@@ -162,7 +136,6 @@ var Provider = class {
             }; 
         return row;
     }
-
 
     /**
      * Return object which contains all possible fields of a row in the folder 
@@ -192,7 +165,6 @@ var Provider = class {
         return folder;
     }
 
-
     /**
      * Is called everytime an account of this provider is enabled in the
      * manager UI.
@@ -204,14 +176,12 @@ var Provider = class {
         ]);
     }
 
-
     /**
      * Is called everytime an account of this provider is disabled in the
      * manager UI.
      */
     async onDisableAccount(accountID) {
     }
-
 
     /**
      * Is called everytime an account of this provider is deleted in the
@@ -220,7 +190,6 @@ var Provider = class {
     async onDeleteAccount(accountID) {
         //dav.network.getAuthData(accountID).removeLoginData();
     }
-
 
     /*static async abAutoComplete(accountID, currentQuery)  {
         function encodeABTermValue(aString) {
@@ -322,7 +291,6 @@ var Provider = class {
         return entries;
     }*/
 
-
     /**
      * Returns all folders of the account, sorted in the desired order including
      * all data needed for the FolderListView.
@@ -368,7 +336,6 @@ var Provider = class {
         return folders;
     }
 
-
     /**
      * Return the connection timeout for an active sync, so TbSync can append
      * a countdown to the connection timeout, while waiting for an answer from
@@ -376,8 +343,7 @@ var Provider = class {
      */
     async getConnectionTimeout(accountID) {
         return localStorageHandler.getPref("timeout");
-    }
-    
+    }    
 
     /**
      * Is called if TbSync needs to synchronize the folder list.
@@ -388,9 +354,8 @@ var Provider = class {
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
-        return;
         
-        try {
+/*        try {
             await dav.sync.folderList(syncData);
         } catch (e) {
             if (e.name == "dav4tbsync") {
@@ -400,13 +365,12 @@ var Provider = class {
                 // re-throw any other error and let TbSync handle it
                 throw (e);
             }
-        }
+        }*/
 
         // we fall through, if there was no error
-        return new TbSync.StatusData();
+        return new StatusData();
     }
     
-
     /**
      * Is called if TbSync needs to synchronize a folder.
      */
@@ -416,9 +380,8 @@ var Provider = class {
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
-        return;
         
-        // Limit auto sync rate, if google
+/*        // Limit auto sync rate, if google
         let isGoogle = (syncData.accountData.getAccountProperty("serviceprovider") == "google");
         let isDefaultGoogleApp = (Services.prefs.getDefaultBranch("extensions.dav4tbsync.").getCharPref("OAuth2_ClientID") == dav.sync.prefSettings.getCharPref("OAuth2_ClientID"));
         if (isGoogle && isDefaultGoogleApp && syncData.accountData.getAccountProperty("autosync") > 0 && syncData.accountData.getAccountProperty("autosync") < 30) {
@@ -437,10 +400,10 @@ var Provider = class {
                 // re-throw any other error and let TbSync handle it
                 throw (e);
             }
-        }
+        }*/
 
         // we fall through, if there was no error
-        return new TbSync.StatusData();
+        return new StatusData();
     }
     
     
@@ -508,7 +471,6 @@ var Provider = class {
         };
     }
     
-
     /**
      * Return the attributes for the ACL RW (readwrite) menu element per folder.
      * (label, disabled, hidden, style, ...)

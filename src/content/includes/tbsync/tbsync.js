@@ -10,6 +10,56 @@
 
 const TBSYNC_ID = "tbsync@jobisoft.de";
 
+export var StatusData = class {
+  /**
+   * A StatusData instance must be used as return value by 
+   * :class:`Base.syncFolderList` and :class:`Base.syncFolder`.
+   * 
+   * StatusData also defines the possible StatusDataTypes used by the
+   * :ref:`TbSyncEventLog`.
+   *
+   * @param {StatusDataType} type  Status type (see const definitions below)
+   * @param {string} message  ``Optional`` A message, which will be used as
+   *                          sync status. If this is not a success, it will be
+   *                          used also in the :ref:`TbSyncEventLog` as well.
+   * @param {string} details  ``Optional``  If this is not a success, it will
+   *                          be used as description in the
+   *                          :ref:`TbSyncEventLog`.
+   *
+   */
+  constructor(type = "success", message = "", details = "") {
+    this.version = "3.0";
+    this.type = type; //success, info, warning, error
+    this.message = message;
+    this.details = details;
+  }
+  /**
+   * Successfull sync. 
+   */
+  static get SUCCESS() {return "success"};
+  /**
+   * Sync of the entire account will be aborted.
+   */
+  static get ERROR() {return "error"};
+  /**
+   * Sync of this resource will be aborted and continued with next resource.
+   */
+  static get WARNING() {return "warning"};
+  /**
+   * Successfull sync, but message and details
+   * provided will be added to the event log.
+   */
+  static get INFO() {return "info"};
+  /**
+   * Sync of the entire account will be aborted and restarted completely.
+   */
+  static get ACCOUNT_RERUN() {return "account_rerun"}; 
+  /**
+   * Sync of the current folder/resource will be restarted.
+   */
+  static get FOLDER_RERUN() {return "folder_rerun"}; 
+}
+
 export var TbSync = class {
     constructor(provider) {
         this.port = null;
@@ -20,6 +70,7 @@ export var TbSync = class {
     }
         
     async connect() {        
+        this._connectionEstablished = false;
         if (!this._connectPromise) {
             this._connectPromise = new Promise(resolve => {
                 // Wait for connections attempts from TbSync.
@@ -37,25 +88,39 @@ export var TbSync = class {
                             this.provider.onDisconnect();
                         });
                         // provider.onConnect is initiated from TbSync
+                        this._connectionEstablished = true;
                         resolve();
                     }
                 });
 
                 // React on TbSync being enabled/installed to initiate connection.
+                async function sendProviderData(provider) {
+                    messenger.runtime.sendMessage(TBSYNC_ID, {
+                        command: "InitiateConnect", 
+                        provider: provider.shortName,
+                        info: {
+                            name: await provider.getProviderName(),
+                            icon16: await provider.getProviderIcon(16),
+                            apiVersion: await provider.getApiVersion(),
+                        }
+                    });
+                }
                 function introduction(addon) {
                     if (addon.id != TBSYNC_ID)
                         return;
-                    messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.provider.shortName });
+                    sendProviderData(this.provider);
                 }
                 messenger.management.onInstalled.addListener(introduction.bind(this));
                 messenger.management.onEnabled.addListener(introduction.bind(this));
 
                 // Inform TbSync that we exists and initiate connections.
                 messenger.management.get(TBSYNC_ID)
-                    .then(tbSyncAddon => {
-                        if (tbSyncAddon && tbSyncAddon.enabled) {
+                    .then(async (tbSyncAddon) => {
+                        while (!this._connectionEstablished && tbSyncAddon && tbSyncAddon.enabled) {
                             // Send a single ping to trigger a connection request.
-                            messenger.runtime.sendMessage(TBSYNC_ID, { command: "InitiateConnect", provider: this.provider.shortName });
+                            console.log("Contacting TbSync")
+                            await sendProviderData(this.provider);
+                            await new Promise(resolve => window.setTimeout(resolve, 1000))
                         }
                     })
                     .catch((e) => {});
@@ -82,13 +147,15 @@ export var TbSync = class {
             let parameters = Array.isArray(data.parameters) ? data.parameters : [];
             let rv;
             if (["Base"].includes(mod)) {
-                rv = await this[mod][func](...parameters);
+                console.log(func);
+                rv = await this.provider[func](...parameters);
             }
             port.postMessage({origin, id, data: rv});
         }
     }    
     
     portSend(data) {
+      console.log(data);
       return new Promise(resolve => {
         const id = ++this.portMessageId;
         this.portMap.set(id, resolve);
@@ -148,13 +215,6 @@ export var TbSync = class {
         });
     }
     
-    getAllFolders(accountID) {
-        return this.portSend({
-            command: "getAllFolders",
-            parameters: [...arguments]
-        });
-    }
-    
     getFolderProperty(accountID, folderID, property) {
         return this.portSend({
             command: "getFolderProperty",
@@ -202,8 +262,37 @@ export var TbSync = class {
             command: "resetFolderProperties",
             parameters: [...arguments]
         });
-    }   
+    }
 
+
+    createNewFolder(accountID, properties) {
+        return this.portSend({
+            command: "createNewFolder",
+            parameters: [...arguments]
+        });
+    }
+    
+    addAccount(properties) {
+        return this.portSend({
+            command: "addAccount",
+            parameters: [...arguments]
+        });
+    }
+    
+    getAllAccounts() {
+        return this.portSend({
+            command: "getAllAccounts",
+            parameters: [...arguments]
+        });
+    }        
+
+    getAllFolders(accountID) {
+        return this.portSend({
+            command: "getAllFolders",
+            parameters: [...arguments]
+        });
+    }
+    
     async getString(key) {
       //spezial treatment of strings with :: like status.httperror::403
       let parts = key.split("::");
@@ -228,7 +317,4 @@ export var TbSync = class {
 
       return localized;
     }
-
-/*    class StatusData {
-    }*/
 }
