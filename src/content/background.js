@@ -12,50 +12,15 @@
 import { TbSync, StatusData } from './includes/tbsync/tbsync.js';
 import * as dav from './includes/sync.js';
 
-/**
- * Implementing the Provider interface for TbSync provider extensions.
- */
-var Provider = class {
-    constructor(shortName, addon) {
-        this.shortName = shortName;
-        this.addon = addon;
-        this.tbSync = new TbSync(this);
+let Provider = class {
+    constructor() {
+
     }
-
-  /**
-     * Called after connection to TbSync has been established.
-     */
-    async onConnect() {
-        console.log(`TbSync established connection to ${this.addon.id}`);
-
-        // openWindows is state data and needs to be managed in a central
-        // background message hub
-        this.openWindows = {};
-    }
-
-    /**
-     * Called after connection to TbSync has been terminated.
-     */
-    async onDisconnect() {                
-        console.log(`TbSync terminated connection to ${this.addon.id}`);
-
-        // Close all open windows of this provider.
-        for (let id in this.openWindows) {
-          if (this.openWindows.hasOwnProperty(id)) {
-            try {
-                this.openWindows[id].close();
-            } catch (e) {
-                //NOOP
-            }
-          }
-        }
-    }
-
     /**
      * Returns string for the name of provider for the add account menu.
      */
     async getProviderName() {
-        return await this.tbSync.getString("menu.name");
+        return await tbSync.getString("menu.name");
     }
 
     /**
@@ -69,7 +34,7 @@ var Provider = class {
     async getProviderIcon(size, accountID = null) {
         let root = "sabredav";
         if (accountID) {
-            let serviceprovider = await this.tbSync.getAccountProperty(accountID, "serviceprovider");
+            let serviceprovider = await tbSync.getAccountProperty(accountID, "serviceprovider");
             if (dav.sync.serviceproviders.hasOwnProperty(serviceprovider)) {
                 root = dav.sync.serviceproviders[serviceprovider].icon;
             }
@@ -170,7 +135,7 @@ var Provider = class {
      * manager UI.
      */
     async onEnableAccount(accountID) {
-        await this.tbSync.resetAccountProperties(accountID, [
+        await tbSync.resetAccountProperties(accountID, [
             "calDavPrincipal",
             "cardDavPrincipal"
         ]);
@@ -280,12 +245,12 @@ var Provider = class {
         
         // Sort the results.
         entries.sort(function(a, b) {
-          // Order by 1) descending popularity,
-          // then 2) by value (DisplayName) sorted alphabetically.
-          return (
+            // Order by 1) descending popularity,
+            // then 2) by value (DisplayName) sorted alphabetically.
+            return (
             b.popularityIndex - a.popularityIndex ||
             a.value.localeCompare(b.value)
-          );
+            );
         });
 
         return entries;
@@ -355,7 +320,7 @@ var Provider = class {
         // in that function, which have the StatusData obj attached, which
         // should be returned.
         
-/*        try {
+    /*        try {
             await dav.sync.folderList(syncData);
         } catch (e) {
             if (e.name == "dav4tbsync") {
@@ -370,7 +335,7 @@ var Provider = class {
         // we fall through, if there was no error
         return new StatusData();
     }
-    
+
     /**
      * Is called if TbSync needs to synchronize a folder.
      */
@@ -381,7 +346,7 @@ var Provider = class {
         // in that function, which have the StatusData obj attached, which
         // should be returned.
         
-/*        // Limit auto sync rate, if google
+    /*        // Limit auto sync rate, if google
         let isGoogle = (syncData.accountData.getAccountProperty("serviceprovider") == "google");
         let isDefaultGoogleApp = (Services.prefs.getDefaultBranch("extensions.dav4tbsync.").getCharPref("OAuth2_ClientID") == dav.sync.prefSettings.getCharPref("OAuth2_ClientID"));
         if (isGoogle && isDefaultGoogleApp && syncData.accountData.getAccountProperty("autosync") > 0 && syncData.accountData.getAccountProperty("autosync") < 30) {
@@ -405,13 +370,13 @@ var Provider = class {
         // we fall through, if there was no error
         return new StatusData();
     }
-    
-    
-    
+
+
+
     /*
-     * FolderList (local, could be moved elsewhere)
-     */
-    
+        * FolderList (local, could be moved elsewhere)
+        */
+
     /**
      * Is called before the context menu of the folderlist is shown, allows to
      * show/hide custom menu options based on selected folder. During an active
@@ -467,10 +432,10 @@ var Provider = class {
      */ 
     async getAttributesRoAcl(accountObject, folderID) {
         return {
-            label: await this.tbSync.getString("acl.readonly"),
+            label: await tbSync.getString("acl.readonly"),
         };
     }
-    
+
     /**
      * Return the attributes for the ACL RW (readwrite) menu element per folder.
      * (label, disabled, hidden, style, ...)
@@ -481,19 +446,22 @@ var Provider = class {
     async getAttributesRwAcl(accountObject, folderID) {
         let acl = parseInt( accountObject.folders[folderID]["acl"]);
         let acls = [];
-        if (acl & 0x2) acls.push(await this.tbSync.getString("acl.modify"));
-        if (acl & 0x4) acls.push(await this.tbSync.getString("acl.add"));
-        if (acl & 0x8) acls.push(await this.tbSync.getString("acl.delete"));
-        if (acls.length == 0)  acls.push(await this.tbSync.getString("acl.none"));
+        if (acl & 0x2) acls.push(await tbSync.getString("acl.modify"));
+        if (acl & 0x4) acls.push(await tbSync.getString("acl.add"));
+        if (acl & 0x8) acls.push(await tbSync.getString("acl.delete"));
+        if (acls.length == 0)  acls.push(await tbSync.getString("acl.none"));
 
         return {
-            label: await this.tbSync.getString("acl.readwrite::"+acls.join(", ")),
+            label: await tbSync.getString("acl.readwrite::"+acls.join(", ")),
             disabled: (acl & 0x7) != 0x7,
         }             
     }    
 }
 
-async function main() {
+let tbSync = new TbSync();
+let provider = new Provider();
+
+async function init() {
     // Setup local storage for our own preferences.
     localStorageHandler.init({
         maxitems: 50,
@@ -507,15 +475,28 @@ async function main() {
     // takes care of default handling.
     localStorageHandler.enableListeners();
 
-    // Create the Provider object.
-    let addon = await messenger.management.getSelf();
-    let provider = new Provider("dav", addon);
     
+    tbSync.onConnect.addListener(() => {
+        console.log(`TbSync established connection with the DAV provider.`);
+    });
+
+    tbSync.onDisconnect.addListener(() => {
+        console.log(`TbSync lost connection with the DAV provider.`);
+    })
+
+    tbSync.onMessage.addListener((message, data) => {
+        console.log("Recieved", message, data);
+        return provider[message](...data);
+    })
+
     // Connect to TbSync. Resolves after the first connection has been
     // established. There is no need to await this call. Just calling it will
     // setup all needed listeners to be able to (re-) establish the connection.
-    // provider.onConnect() will be called after connection has been established.
-    await provider.tbSync.connect();
+    tbSync.connect({
+        name: await provider.getProviderName(),
+        icon16: await provider.getProviderIcon(16),
+        apiVersion: await provider.getApiVersion(),
+    });
 }
 
-main();
+init();
