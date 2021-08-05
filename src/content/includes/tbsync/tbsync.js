@@ -60,40 +60,26 @@ export var StatusData = class {
   static get FOLDER_RERUN() {return "folder_rerun"}; 
 }
 
-var Listener = class {
-    constructor(handler) {
-        this.handler = handler;
-    }
-    addListener(callback) {
-        this.handler.callbacks.push(callback);
-    }
-}
-
-async function fire(callbacks, payload = []) {
-    // Goal: All functions not returning a promise are ignored, all returned promises are raced.
-    for (let callback of callbacks) {
-        return callback(...payload);
-    }
-}
-
 export var TbSync = class {
     constructor() {
         this.port = null;
         this.connectPromise = null;
         this.portMap = new Map();
         this.portMessageId = 0;
-        
-        this.onConnectCallbacks = [];
-        this.onDisconnectCallbacks = [];
-        this.onMessageCallbacks = [];
-        
-        this.onConnect = new Listener({callbacks: this.onConnectCallbacks});
-        this.onDisconnect = new Listener({callbacks: this.onDisconnectCallbacks});
-        this.onMessage = new Listener({callbacks: this.onMessageCallbacks});
+        this.provider = null;
     }
     
-    async connect(info) {        
+    async register(provider) {
         this._connectionEstablished = false;
+        this.provider = provider;
+        this.addon = await messenger.management.getSelf();
+
+        let info = {
+            name: await provider.getProviderName(),
+            icon16: await provider.getProviderIcon(16),
+            apiVersion: await provider.getApiVersion(),
+        };
+
         if (!this._connectPromise) {
             this._connectPromise = new Promise(resolve => {
                 // Wait for connections attempts from TbSync.
@@ -108,7 +94,7 @@ export var TbSync = class {
                         this.port.onDisconnect.addListener(() => {
                             this.port.onMessage.removeListener(this.portReceiver.bind(this));
                             this.port = null;
-                            fire(this.onDisconnectCallbacks);
+                            this.provider.onDisconnect();
                         });
                         this._connectionEstablished = true;
                         // Too early - fire(this.onConnectCallbacks);
@@ -154,10 +140,6 @@ export var TbSync = class {
         if (port.sender.id != TBSYNC_ID)
             return;
 
-        if (!this.addon) {
-            this.addon = await messenger.management.getSelf();
-        }
-
         const {origin, id, data} = message;
         if (origin == this.addon.id) {
             // This is an answer for one of our own requests.
@@ -171,16 +153,17 @@ export var TbSync = class {
             let rv;
             if (["Base"].includes(mod)) {
                 console.log(func);
-                rv = await fire(this.onMessageCallbacks, [func, parameters]);
+                if (this.provider[func]) {
+                    rv = await this.provider[func](...parameters);
+                } else {
+                    console.log(`Incomplete provider implementation: Missing: ${func}()`);
+                }
             }
             port.postMessage({origin, id, data: rv});
         }
     }    
     
     async portSend(data) {
-        if (!this.addon) {
-            this.addon = await messenger.management.getSelf();
-        }
         console.log(data);
         return new Promise(resolve => {
             const id = ++this.portMessageId;

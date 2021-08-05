@@ -10,7 +10,7 @@
 
 // Mandatory import to be able to communicate with TbSync.
 import { TbSync, StatusData } from './includes/tbsync/tbsync.js';
-import * as dav from './includes/sync.js';
+//import * as dav from './includes/sync.js';
 
 let Provider = class {
     constructor() {
@@ -48,6 +48,14 @@ let Provider = class {
             default :
                 return messenger.runtime.getURL("content/skin/"+root+"48.png");
         }
+    }
+
+    async onConnect() {
+        console.log(`TbSync established connection with the DAV provider.`);
+    }
+
+    async onDisconnect() {
+        console.log(`TbSync lost connection with the DAV provider.`);
     }
 
     /**
@@ -459,7 +467,7 @@ let Provider = class {
 }
 
 let tbSync = new TbSync();
-let provider = new Provider();
+let davProvider = new Provider();
 
 async function init() {
     // Setup local storage for our own preferences.
@@ -475,28 +483,10 @@ async function init() {
     // takes care of default handling.
     localStorageHandler.enableListeners();
 
-    
-    tbSync.onConnect.addListener(() => {
-        console.log(`TbSync established connection with the DAV provider.`);
-    });
-
-    tbSync.onDisconnect.addListener(() => {
-        console.log(`TbSync lost connection with the DAV provider.`);
-    })
-
-    tbSync.onMessage.addListener((message, data) => {
-        console.log("Recieved", message, data);
-        return provider[message](...data);
-    })
-
-    // Connect to TbSync. Resolves after the first connection has been
+    // Register with TbSync. Resolves after the first connection has been
     // established. There is no need to await this call. Just calling it will
     // setup all needed listeners to be able to (re-) establish the connection.
-    tbSync.connect({
-        name: await provider.getProviderName(),
-        icon16: await provider.getProviderIcon(16),
-        apiVersion: await provider.getApiVersion(),
-    });
+    tbSync.register(davProvider);
 }
 
 init();
