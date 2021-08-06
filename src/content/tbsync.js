@@ -59,79 +59,104 @@ export var StatusData = class {
    */
   static get FOLDER_RERUN() {return "folder_rerun"}; 
 }
-
-export var TbSync = class {
+let TbSync = class {
     constructor() {
         this.port = null;
-        this.connectPromise = null;
+        this.provider = null;
+        this.addon = null;
+        this._connectionEstablished = false;
+        this.numberOfPingRequests = 0;
+
         this.portMap = new Map();
         this.portMessageId = 0;
-        this.provider = null;
-    }
+
+        this.sendPing = async () => {
+            let info = {
+                name: await this.provider.getProviderName(),
+                icon16: await this.provider.getProviderIcon(16),
+                apiVersion: await this.provider.getApiVersion(),
+            };
+            let currentPingRequest = ++this.numberOfPingRequests;
+            
+            // Ping TbSync until the port based connection has been established. Aborts if registration
+            // has been canceled (which clears the provider). Only one active ping allowed.
+            while (currentPingRequest == this.numberOfPingRequests && this.provider && !this._connectionEstablished) {
+                console.log("Ping TbSync")
+                messenger.runtime.sendMessage(TBSYNC_ID, {
+                    command: "InitiateConnect", 
+                    provider: "dav", //Obsolete
+                    info
+                });
+                await new Promise(resolve => window.setTimeout(resolve, 1000))
+            }
+        }
+
+        this.addonListener = addon => {
+            if (addon.id != TBSYNC_ID)
+                return;
+            this.sendPing();
+        }
+
+        this.portConnectionListener = port => {
+            // port.name should be "ProviderConnection"
+            if (this.port || port.sender.id != TBSYNC_ID)
+                return
     
-    async register(provider) {
-        this._connectionEstablished = false;
-        this.provider = provider;
+            if (port && !port.error) {
+                this.port = port;
+                let receiver = this.portReceiver.bind(this);
+                this.port.onMessage.addListener(receiver);
+                this.port.onDisconnect.addListener(() => {
+                    this._connectionEstablished = false;
+                    this.port.onMessage.removeListener(receiver);
+                    this.port = null;
+                    this.provider.onDisconnect();
+                });
+                this._connectionEstablished = true;
+            }
+        }
+    } 
+
+    async unregister() {
+        if (!this.provider) {
+            console.log("Nothing to unregister.");
+            return;
+        }
+
+        if (this.port) {
+            this.port.disconnect();
+        }
+
+        this.port = null;
+        this.provider = null;
+        this.addon = null;
+
+        messenger.runtime.onConnectExternal.removeListener(this.portConnectionListener);
+        messenger.management.onInstalled.removeListener(this.addonListener);
+        messenger.management.onEnabled.removeListener(this.addonListener);
+    }
+
+    async register(ProviderClass) {
+        if (this.provider) {
+            console.log("Register has already been called. Unregister first.");
+            return;
+        }
+        
+        this.provider = new ProviderClass();
         this.addon = await messenger.management.getSelf();
 
-        let info = {
-            name: await provider.getProviderName(),
-            icon16: await provider.getProviderIcon(16),
-            apiVersion: await provider.getApiVersion(),
-        };
+        // Wait for port based connections attempts from TbSync.
+        messenger.runtime.onConnectExternal.addListener(this.portConnectionListener);
 
-        if (!this._connectPromise) {
-            this._connectPromise = new Promise(resolve => {
-                // Wait for connections attempts from TbSync.
-                messenger.runtime.onConnectExternal.addListener(port => {
-                    // port.name should be "ProviderConnection"
-                    if (port.sender.id != TBSYNC_ID)
-                        return
+        // If TbSync is already installed and enabled, try to ping it.
+        let tbSyncAddon = await messenger.management.get(TBSYNC_ID);
+        if (tbSyncAddon && tbSyncAddon.enabled) {
+            this.sendPing();
+        }
 
-                    if (port && !port.error) {
-                        this.port = port;
-                        this.port.onMessage.addListener(this.portReceiver.bind(this));
-                        this.port.onDisconnect.addListener(() => {
-                            this.port.onMessage.removeListener(this.portReceiver.bind(this));
-                            this.port = null;
-                            this.provider.onDisconnect();
-                        });
-                        this._connectionEstablished = true;
-                        // Too early - fire(this.onConnectCallbacks);
-                        resolve();
-                    }
-                });
-
-                // React on TbSync being enabled/installed to initiate connection.
-                async function sendProviderData() {
-                    messenger.runtime.sendMessage(TBSYNC_ID, {
-                        command: "InitiateConnect", 
-                        provider: "dav", //Obsolete
-                        info
-                    });
-                }
-                function introduction(addon) {
-                    if (addon.id != TBSYNC_ID)
-                        return;
-                    sendProviderData();
-                }
-                messenger.management.onInstalled.addListener(introduction.bind(this));
-                messenger.management.onEnabled.addListener(introduction.bind(this));
-
-                // Inform TbSync that we exists and initiate connections.
-                messenger.management.get(TBSYNC_ID)
-                    .then(async (tbSyncAddon) => {
-                        while (!this._connectionEstablished && tbSyncAddon && tbSyncAddon.enabled) {
-                            // Send a single ping to trigger a connection request.
-                            console.log("Contacting TbSync")
-                            await sendProviderData();
-                            await new Promise(resolve => window.setTimeout(resolve, 1000))
-                        }
-                    })
-                    .catch((e) => {});
-            });
-        }        
-        return this._connectPromise;
+        // Try to ping TbSync after it has been enabled or installed.
+        messenger.management.onInstalled.addListener(this.addonListener);
+        messenger.management.onEnabled.addListener(this.addonListener);
     }
     
     async portReceiver(message, port) {
@@ -327,3 +352,6 @@ export var TbSync = class {
       return localized;
     }
 }
+
+// Export an instance / singelton.
+export var tbSync = new TbSync();
