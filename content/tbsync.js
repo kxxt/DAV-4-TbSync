@@ -91,9 +91,9 @@ let TbSync = class {
         }
 
         this.addonListener = addon => {
-            if (addon.id != TBSYNC_ID)
-                return;
-            this.sendPing();
+            if (addon.id == TBSYNC_ID) {
+                this.sendPing();
+            }
         }
 
         this.portConnectionListener = port => {
@@ -152,9 +152,13 @@ let TbSync = class {
         messenger.runtime.onConnectExternal.addListener(this.portConnectionListener);
 
         // If TbSync is already installed and enabled, try to ping it.
-        let tbSyncAddon = await messenger.management.get(TBSYNC_ID);
-        if (tbSyncAddon && tbSyncAddon.enabled) {
-            this.sendPing();
+        try {
+            let tbSyncAddon = await messenger.management.get(TBSYNC_ID);
+            if (tbSyncAddon && tbSyncAddon.enabled) {
+                this.sendPing();
+            }
+        } catch (e) {
+            // TbSync is not installed.
         }
 
         // Try to ping TbSync after it has been enabled or installed.
