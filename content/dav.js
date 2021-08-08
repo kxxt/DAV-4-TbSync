@@ -56,7 +56,12 @@ export var DavProvider = class {
     async onDisconnect() {
         console.log(`TbSync lost connection with the DAV provider.`);
     }
-
+    /**
+     * Returns the url of a page with details about contributors (used in the manager UI)
+     */
+    async getContributorsUrl() {
+        return "https://github.com/jobisoft/DAV-4-TbSync/blob/master/CONTRIBUTORS.md";
+    }
     /**
      * Returns the email address of the maintainer (used for bug reports).
      */

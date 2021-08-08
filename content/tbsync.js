@@ -84,7 +84,6 @@ let TbSync = class {
                 console.log("Ping TbSync")
                 messenger.runtime.sendMessage(TBSYNC_ID, {
                     command: "InitiateConnect", 
-                    provider: "dav", //Obsolete
                     info
                 });
                 await new Promise(resolve => window.setTimeout(resolve, 1000))
@@ -110,7 +109,11 @@ let TbSync = class {
                     this._connectionEstablished = false;
                     this.port.onMessage.removeListener(receiver);
                     this.port = null;
-                    this.provider.onDisconnect();
+                    if (this.provider.onDisconnect) {
+                        this.provider.onDisconnect();
+                    } else {
+                        console.log(`Incomplete provider implementation: Missing: onDisconnect()`);
+                    }
                 });
                 this._connectionEstablished = true;
             }
