@@ -19,13 +19,16 @@ export var DavProvider = class {
      * Returns string for the name of provider for the add account menu.
      */
     async getProviderName() {
-        return await tbSync.getString("menu.name");
+        return tbSync.getString("menu.name");
     }
+
 
     /**
      * Returns version of the TbSync API this provider is using.
      */
     async getApiVersion() { return "3.0"; }
+
+
 
     /**
      * Returns location of a provider icon.
@@ -57,17 +60,33 @@ export var DavProvider = class {
         console.log(`TbSync lost connection with the DAV provider.`);
     }
     /**
+     * Returns a list of sponsors, they will be sorted by the index
+     */
+    async getSponsors() {
+        return {
+            "Thoben, Marc" : {name: "Marc Thoben", description: "Zimbra", icon: "", link: "" },
+            "Biebl, Michael" : {name: "Michael Biebl", description: "Nextcloud", icon: "", link: "" },
+            "László, Kovács" : {name: "Kovács László", description : "Radicale", icon: "", link: "" },
+            "Lütticke, David" : {name: "David Lütticke", description : "", icon: "", link: "" },
+        };
+    }
+
+
+    /**
      * Returns the url of a page with details about contributors (used in the manager UI)
      */
     async getContributorsUrl() {
         return "https://github.com/jobisoft/DAV-4-TbSync/blob/master/CONTRIBUTORS.md";
     }
+
+
     /**
      * Returns the email address of the maintainer (used for bug reports).
      */
     async getMaintainerEmail() {
         return "john.bieling@gmx.de";
     }
+
 
     /**
      * Returns URL of the new account window.
@@ -79,6 +98,7 @@ export var DavProvider = class {
         return messenger.runtime.getURL("content/manager/createAccount.xhtml"); //TODO
     }
 
+
     /**
      * Returns overlay XUL URL of the edit account dialog
      * (chrome://tbsync/content/manager/editAccount.xhtml)
@@ -86,6 +106,7 @@ export var DavProvider = class {
     async getEditAccountOverlayUrl() {
         return messenger.runtime.getURL("content/manager/editAccountOverlay.xhtml"); //TODO
     }
+
 
     /**
      * Return object which contains all possible fields of a row in the
@@ -113,6 +134,7 @@ export var DavProvider = class {
             }; 
         return row;
     }
+
 
     /**
      * Return object which contains all possible fields of a row in the folder 
@@ -142,6 +164,7 @@ export var DavProvider = class {
         return folder;
     }
 
+
     /**
      * Is called everytime an account of this provider is enabled in the
      * manager UI.
@@ -153,12 +176,14 @@ export var DavProvider = class {
         ]);
     }
 
+
     /**
      * Is called everytime an account of this provider is disabled in the
      * manager UI.
      */
     async onDisableAccount(accountID) {
     }
+
 
     /**
      * Is called everytime an account of this provider is deleted in the
@@ -167,6 +192,7 @@ export var DavProvider = class {
     async onDeleteAccount(accountID) {
         //dav.network.getAuthData(accountID).removeLoginData();
     }
+
 
     /*static async abAutoComplete(accountID, currentQuery)  {
         function encodeABTermValue(aString) {
