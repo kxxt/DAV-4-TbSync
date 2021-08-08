@@ -13,7 +13,17 @@ import { tbSync, StatusData } from '/content/tbsync.js';
 
 export var DavProvider = class {
     constructor() {
-
+        this.serviceproviders = {
+            "fruux" : {revision: 1, icon: "fruux", caldav: "https://dav.fruux.com", carddav: "https://dav.fruux.com"},
+            "mbo" : {revision: 1, icon: "mbo", caldav: "caldav6764://mailbox.org", carddav: "carddav6764://mailbox.org"},
+            "icloud" : {revision: 1, icon: "icloud", caldav: "https://caldav.icloud.com", carddav: "https://contacts.icloud.com"},
+            "google" : {revision: 1, icon: "google", caldav: "https://apidata.googleusercontent.com/caldav/v2/", carddav: "https://www.googleapis.com/.well-known/carddav"},
+            "gmx.net" : {revision: 1, icon: "gmx", caldav: "caldav6764://gmx.net", carddav: "carddav6764://gmx.net"},
+            "gmx.com" : {revision: 1, icon: "gmx", caldav: "caldav6764://gmx.com", carddav: "carddav6764://gmx.com"},
+            "posteo" : {revision: 1, icon: "posteo", caldav: "https://posteo.de:8443", carddav: "posteo.de:8843"},
+            "web.de" : {revision: 1, icon: "web", caldav: "caldav6764://web.de", carddav: "carddav6764://web.de"},
+            "yahoo" : {revision: 1, icon: "yahoo", caldav: "caldav6764://yahoo.com", carddav: "carddav6764://yahoo.com"},
+        };
     }
     /**
      * Returns string for the name of provider for the add account menu.
@@ -37,8 +47,8 @@ export var DavProvider = class {
         let root = "sabredav";
         if (accountID) {
             let serviceprovider = await tbSync.getAccountProperty(accountID, "serviceprovider");
-            if (dav.sync.serviceproviders.hasOwnProperty(serviceprovider)) {
-                root = dav.sync.serviceproviders[serviceprovider].icon;
+            if (this.serviceproviders.hasOwnProperty(serviceprovider)) {
+                root = this.serviceproviders[serviceprovider].icon;
             }
         }
         
