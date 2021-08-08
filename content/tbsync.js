@@ -112,7 +112,7 @@ let TbSync = class {
                     if (this.provider.onDisconnect) {
                         this.provider.onDisconnect();
                     } else {
-                        console.log(`Incomplete provider implementation: Missing: onDisconnect()`);
+                        console.log(`Incomplete provider implementation @ ${this.addon.id}: Missing onDisconnect()`);
                     }
                 });
                 this._connectionEstablished = true;
@@ -184,7 +184,7 @@ let TbSync = class {
                 if (this.provider[func]) {
                     rv = await this.provider[func](...parameters);
                 } else {
-                    console.log(`Incomplete provider implementation: Missing: ${func}()`);
+                    console.log(`Incomplete provider implementation @ ${this.addon.id}: Missing ${func}()`);
                 }
             }
             port.postMessage({origin, id, data: rv});
