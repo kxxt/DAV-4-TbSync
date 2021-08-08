@@ -11,7 +11,6 @@
 // Mandatory import to be able to communicate with TbSync.
 import { tbSync } from '/content/tbsync.js';
 import { DavProvider } from '/content/dav.js';
-//import * as dav from './provider/sync.js';
 
 async function init() {
     // Setup local storage for our own preferences.
