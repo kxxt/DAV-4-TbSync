@@ -313,7 +313,14 @@ export var DavProvider = class {
         let allFolders = await tbSync.getAllFolders(accountID);
         for (let folderID of allFolders) {
             let t = 100;
-            let type = await tbSync.getFolderProperty(accountID, folderID, "type");
+
+            let { type, shared, foldername, acl } = await tbSync.getFolderProperties(accountID, folderID, [
+                "type",
+                "shared",
+                "foldername",
+                "acl"
+            ]);            
+
             switch (type) {
                 case "carddav": 
                     t+=0; 
@@ -329,20 +336,18 @@ export var DavProvider = class {
                     break;
             }
 
-            let shared = await tbSync.getFolderProperty(accountID, folderID, "shared");
             if (shared) {
                 t+=100;
             }
-            let foldername = await tbSync.getFolderProperty(accountID, folderID, "foldername");
-
+    
             sortedFolders.push({
                 "key": t.toString() + foldername, 
                 "accountID": accountID,
                 "folderID": folderID,
-                "typeImage": await this.getTypeImage(accountID, folderID),
-                "folderDisplayName": await this.getFolderDisplayName(accountID, folderID),
-                "attributesRoAcl": await this.getAttributesRoAcl(accountID, folderID),
-                "attributesRwAcl": await this.getAttributesRwAcl(accountID, folderID),
+                "folderDisplayName": foldername,
+                "typeImage": await this.getTypeImage(type, shared),
+                "attributesRoAcl": await this.getAttributesRoAcl(),
+                "attributesRwAcl": await this.getAttributesRwAcl(parseInt(acl)),
             });
         }
         
@@ -425,9 +430,9 @@ export var DavProvider = class {
 
 
 
-    /*
-        * FolderList (local, could be moved elsewhere)
-        */
+    /**
+     * FolderList (local, could be moved elsewhere, only usee by getSortedFolder)
+     */
 
     /**
      * Is called before the context menu of the folderlist is shown, allows to
@@ -442,10 +447,8 @@ export var DavProvider = class {
      * Return the icon used in the folderlist to represent the different folder
      * types.
      */
-    async getTypeImage(accountID, folderID) {
+    async getTypeImage(type, shared) {
         let src = "";
-        let type = await tbSync.getFolderProperty(accountID, folderID, "type");
-        let shared = await tbSync.getFolderProperty(accountID, folderID, "shared");
 
         switch (type) {
             case "carddav":
@@ -470,20 +473,13 @@ export var DavProvider = class {
     }
 
     /**
-     * Return the name of the folder shown in the folderlist.
-     */ 
-    async getFolderDisplayName(accountID, folderID) {
-        return tbSync.getFolderProperty(accountID, folderID, "foldername");
-    }
-
-    /**
      * Return the attributes for the ACL RO (readonly) menu element per folder.
      * (label, disabled, hidden, style, ...)
      *
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRoAcl(accountID, folderID) {
+    async getAttributesRoAcl() {
         return {
             label: await tbSync.getString("acl.readonly"),
         };
@@ -496,10 +492,7 @@ export var DavProvider = class {
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRwAcl(accountID, folderID) {
-        let acl = await tbSync.getFolderProperty(accountID, folderID, "acl");
-        acl = parseInt(acl);
-        
+    async getAttributesRwAcl(acl) {
         let acls = [];
         if (acl & 0x2) acls.push(await tbSync.getString("acl.modify"));
         if (acl & 0x4) acls.push(await tbSync.getString("acl.add"));
