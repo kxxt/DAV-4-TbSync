@@ -308,11 +308,13 @@ export var DavProvider = class {
      * Returns all folders of the account, sorted in the desired order including
      * all data needed for the FolderListView.
      */
-    async getSortedFolders(accountObject) {       
-        let folders = [];
-        for (let folderID of Object.keys(accountObject.folders)) {
+    async getSortedFolders(accountID) {       
+        let sortedFolders = [];
+        let allFolders = await tbSync.getAllFolders(accountID);
+        for (let folderID of allFolders) {
             let t = 100;
-            switch (accountObject.folders[folderID].type) {
+            let type = await tbSync.getFolderProperty(accountID, folderID, "type");
+            switch (type) {
                 case "carddav": 
                     t+=0; 
                     break;
@@ -327,26 +329,28 @@ export var DavProvider = class {
                     break;
             }
 
-            if (accountObject.folders[folderID].shared) {
+            let shared = await tbSync.getFolderProperty(accountID, folderID, "shared");
+            if (shared) {
                 t+=100;
             }
-            
-            folders.push({
-                "key": t.toString() + accountObject.folders[folderID].foldername, 
-                "accountID": accountObject.accountID,
+            let foldername = await tbSync.getFolderProperty(accountID, folderID, "foldername");
+
+            sortedFolders.push({
+                "key": t.toString() + foldername, 
+                "accountID": accountID,
                 "folderID": folderID,
-                "typeImage": await this.getTypeImage(accountObject, folderID),
-                "folderDisplayName": await this.getFolderDisplayName(accountObject, folderID),
-                "attributesRoAcl": await this.getAttributesRoAcl(accountObject, folderID),
-                "attributesRwAcl": await this.getAttributesRwAcl(accountObject, folderID),
+                "typeImage": await this.getTypeImage(accountID, folderID),
+                "folderDisplayName": await this.getFolderDisplayName(accountID, folderID),
+                "attributesRoAcl": await this.getAttributesRoAcl(accountID, folderID),
+                "attributesRwAcl": await this.getAttributesRwAcl(accountID, folderID),
             });
         }
         
         //sort
-        folders.sort(function(a,b) {
+        sortedFolders.sort(function(a,b) {
             return  a.key > b.key;
         });
-        return folders;
+        return sortedFolders;
     }
 
     /**
@@ -430,7 +434,7 @@ export var DavProvider = class {
      * show/hide custom menu options based on selected folder. During an active
      * sync, folderData will be null.
      */
-    async onContextMenuShowing(accountObject, folderID) {
+    async onContextMenuShowing(accountID, folderID) {
         // TODO
     }
 
@@ -438,9 +442,10 @@ export var DavProvider = class {
      * Return the icon used in the folderlist to represent the different folder
      * types.
      */
-    async getTypeImage(accountObject, folderID) {
+    async getTypeImage(accountID, folderID) {
         let src = "";
-        let { type, shared } = accountObject.folders[folderID];
+        let type = await tbSync.getFolderProperty(accountID, folderID, "type");
+        let shared = await tbSync.getFolderProperty(accountID, folderID, "shared");
 
         switch (type) {
             case "carddav":
@@ -467,8 +472,8 @@ export var DavProvider = class {
     /**
      * Return the name of the folder shown in the folderlist.
      */ 
-    async getFolderDisplayName(accountObject, folderID) {
-        return accountObject.folders[folderID]["foldername"];
+    async getFolderDisplayName(accountID, folderID) {
+        return tbSync.getFolderProperty(accountID, folderID, "foldername");
     }
 
     /**
@@ -478,7 +483,7 @@ export var DavProvider = class {
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRoAcl(accountObject, folderID) {
+    async getAttributesRoAcl(accountID, folderID) {
         return {
             label: await tbSync.getString("acl.readonly"),
         };
@@ -491,8 +496,10 @@ export var DavProvider = class {
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
      */ 
-    async getAttributesRwAcl(accountObject, folderID) {
-        let acl = parseInt( accountObject.folders[folderID]["acl"]);
+    async getAttributesRwAcl(accountID, folderID) {
+        let acl = await tbSync.getFolderProperty(accountID, folderID, "acl");
+        acl = parseInt(acl);
+        
         let acls = [];
         if (acl & 0x2) acls.push(await tbSync.getString("acl.modify"));
         if (acl & 0x4) acls.push(await tbSync.getString("acl.add"));
