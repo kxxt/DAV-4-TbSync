@@ -8,7 +8,7 @@
 
 "use strict";
 
-import { tbSync, StatusData } from '/content/tbsync.js';
+import { TbSync, StatusData } from '/content/tbsync.js';
 //import * as dav from './provider/sync.js';
 
 export var DavProvider = class {
@@ -29,7 +29,7 @@ export var DavProvider = class {
      * Returns string for the name of provider for the add account menu.
      */
     async getProviderName() {
-        return tbSync.getString("menu.name");
+        return TbSync.getString("menu.name");
     }
 
 
@@ -46,7 +46,7 @@ export var DavProvider = class {
     async getProviderIcon(size, accountID = null) {
         let root = "sabredav";
         if (accountID) {
-            let serviceprovider = await tbSync.getAccountProperty(accountID, "serviceprovider");
+            let serviceprovider = await TbSync.db.getAccountProperty(accountID, "serviceprovider");
             if (this.serviceproviders.hasOwnProperty(serviceprovider)) {
                 root = this.serviceproviders[serviceprovider].icon;
             }
@@ -180,7 +180,7 @@ export var DavProvider = class {
      * manager UI.
      */
     async onEnableAccount(accountID) {
-        await tbSync.resetAccountProperties(accountID, [
+        await TbSync.db.resetAccountProperties(accountID, [
             "calDavPrincipal",
             "cardDavPrincipal"
         ]);
@@ -310,11 +310,11 @@ export var DavProvider = class {
      */
     async getSortedFolders(accountID) {       
         let sortedFolders = [];
-        let allFolders = await tbSync.getAllFolders(accountID);
+        let allFolders = await TbSync.db.getAllFolders(accountID);
         for (let folderID of allFolders) {
             let t = 100;
 
-            let { type, shared, foldername, acl } = await tbSync.getFolderProperties(accountID, folderID, [
+            let { type, shared, foldername, acl } = await TbSync.db.getFolderProperties(accountID, folderID, [
                 "type",
                 "shared",
                 "foldername",
@@ -481,7 +481,7 @@ export var DavProvider = class {
      */ 
     async getAttributesRoAcl() {
         return {
-            label: await tbSync.getString("acl.readonly"),
+            label: await TbSync.getString("acl.readonly"),
         };
     }
 
@@ -494,13 +494,13 @@ export var DavProvider = class {
      */ 
     async getAttributesRwAcl(acl) {
         let acls = [];
-        if (acl & 0x2) acls.push(await tbSync.getString("acl.modify"));
-        if (acl & 0x4) acls.push(await tbSync.getString("acl.add"));
-        if (acl & 0x8) acls.push(await tbSync.getString("acl.delete"));
-        if (acls.length == 0)  acls.push(await tbSync.getString("acl.none"));
+        if (acl & 0x2) acls.push(await TbSync.getString("acl.modify"));
+        if (acl & 0x4) acls.push(await TbSync.getString("acl.add"));
+        if (acl & 0x8) acls.push(await TbSync.getString("acl.delete"));
+        if (acls.length == 0)  acls.push(await TbSync.getString("acl.none"));
 
         return {
-            label: await tbSync.getString("acl.readwrite::"+acls.join(", ")),
+            label: await TbSync.getString("acl.readwrite::"+acls.join(", ")),
             disabled: (acl & 0x7) != 0x7,
         }             
     }    

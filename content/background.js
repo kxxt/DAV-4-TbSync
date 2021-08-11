@@ -9,7 +9,7 @@
 "use strict";
 
 // Mandatory import to be able to communicate with TbSync.
-import { tbSync } from '/content/tbsync.js';
+import { TbSync } from '/content/tbsync.js';
 import { DavProvider } from '/content/dav.js';
 
 async function init() {
@@ -29,7 +29,7 @@ async function init() {
     // Register with TbSync. Resolves after the first connection has been
     // established. There is no need to await this call. Just calling it will
     // setup all needed listeners to be able to (re-) establish the connection.
-    tbSync.register(DavProvider);
+    TbSync.register(DavProvider);
 }
 
 init();
