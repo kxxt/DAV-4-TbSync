@@ -236,18 +236,6 @@ var AccountData = class {
         return TbSync.core.getSyncDataObject(this.accountID); //TODO
     }
 
-
-    /**
-     * Initiate a sync of this entire account by calling
-     * :class:`Base.syncFolderList`. If that succeeded, :class:`Base.syncFolder`
-     * will be called for each available folder / resource found on the server.
-     *
-     * @param {Object} syncDescription  ``Optional``
-     */
-    sync(syncDescription = {}) {
-        TbSync.core.syncAccount(this.accountID, syncDescription); //TODO
-    }
-
     isSyncing() {
         return TbSync.core.isSyncing(this.accountID); //TODO
     }
@@ -332,20 +320,6 @@ var FolderData = class {
         TbSync.db.resetFolderProperty(this.accountID, this.folderID, field);
     }
 
-    /**
-     * Initiate a sync of this folder only by calling
-     * :class:`Base.syncFolderList` and than :class:`Base.syncFolder` for this
-     * folder / resource only.
-     *
-     * @param {Object} syncDescription  ``Optional``
-     */
-    sync(aSyncDescription = {}) {
-        let syncDescription = {};
-        Object.assign(syncDescription, aSyncDescription);
-
-        syncDescription.syncFolders = [this];
-        this.accountData.sync(syncDescription);
-    }
 
     isSyncing() {
         let syncdata = this.accountData.syncData;
