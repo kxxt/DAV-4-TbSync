@@ -719,7 +719,8 @@ let TbSyncClass = class {
     }
 
     /*
-     * Wrapper functions to communicate with TbSync
+     * Wrapper functions to communicate with TbSync. These will move to the
+     * local storage of the provider.
      */
 
     get db() {
