@@ -431,7 +431,7 @@ export var DavProvider = class {
 
 
     /**
-     * FolderList (local, could be moved elsewhere, only usee by getSortedFolder)
+     * FolderList (local, could be moved elsewhere, only used by getSortedFolder)
      */
 
     /**
