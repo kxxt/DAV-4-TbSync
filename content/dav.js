@@ -337,13 +337,13 @@ export var DavProvider = class {
             }
     
             sortedFolders.push({
-                "key": t.toString() + foldername, 
-                "accountID": accountData.accountID,
-                "folderID": folderData.folderID,
-                "folderDisplayName": foldername,
-                "typeImage": await this.getTypeImage(type, shared),
-                "attributesRoAcl": await this.getAttributesRoAcl(),
-                "attributesRwAcl": await this.getAttributesRwAcl(parseInt(acl)),
+                key: t.toString() + foldername, 
+                accountID: accountData.accountID,
+                folderID: folderData.folderID,
+                folderDisplayName: foldername,
+                typeImage: await this.getTypeImage(type, shared),
+                attributesRoAcl: await this.getAttributesRoAcl(),
+                attributesRwAcl: await this.getAttributesRwAcl(parseInt(acl)),
             });
         }
         

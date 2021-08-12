@@ -271,12 +271,16 @@ var FolderData = class {
      *
      */
     get eventLogInfo() {
-        return new EventLogInfo(
-            this.accountData.getAccountProperty("provider"),
-            this.accountData.getAccountProperty("accountname"),
-            this.accountData.accountID,
-            this.getFolderProperty("foldername"),
-        );
+        // We want to use await, so we need to wrap it inside an async function, as the getter itself
+        // cannot be async.
+        async function f() {
+            return new EventLogInfo(
+                await this.accountData.getAccountProperty("accountname"),
+                this.accountData.accountID,
+                await this.getFolderProperty("foldername"),
+            );
+        }
+        return f();
     }
 
     get folderID() {
@@ -444,12 +448,16 @@ var SyncData = class {
      *
      */
     get eventLogInfo() {
-        return new EventLogInfo(
-            this.accountData.getAccountProperty("provider"),
-            this.accountData.getAccountProperty("accountname"),
-            this.accountData.accountID,
-            this.currentFolderData ? this.currentFolderData.getFolderProperty("foldername") : "",
-        );
+        // We want to use await, so we need to wrap it inside an async function, as the getter itself
+        // cannot be async.
+        async function f() {
+            return new EventLogInfo(
+                await this.accountData.getAccountProperty("accountname"),
+                this.accountData.accountID,
+                this.currentFolderData ? await this.currentFolderData.getFolderProperty("foldername") : "",
+            );
+        }
+        return f();
     }
 
     /**
