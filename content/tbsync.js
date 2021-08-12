@@ -66,8 +66,6 @@ export var EventLogInfo = class {
      * :ref:`TbSyncEventLog`. The information given here will be added as a
      * header to the actual event.
      *
-     * @param {string} provider     ``Optional`` A provider ID (also used as
-     *                              provider namespace). 
      * @param {string} accountname  ``Optional`` An account name. Can be
      *                              arbitrary but should match the accountID
      *                              (if provided).
@@ -76,34 +74,12 @@ export var EventLogInfo = class {
      * @param {string} foldername   ``Optional`` A folder name.
      *
      */
-    constructor(provider, accountname = "", accountID = "", foldername = "") {
-        this._provider = provider;
-        this._accountname = accountname;
-        this._accountID = accountID;
-        this._foldername = foldername;
+    constructor(accountname = "", accountID = "", foldername = "") {
+        this.accountname = accountname;
+        this.accountID = accountID;
+        this.foldername = foldername;
+        this.provider = TbSync.providerInfo.addon.id; // which is actually the sender.id
     }
-
-    /**
-     * Getter/Setter for the provider ID of this EventLogInfo.
-     */
-    get provider() { return this._provider };
-    /**
-     * Getter/Setter for the account ID of this EventLogInfo.
-     */
-    get accountname() { return this._accountname };
-    /**
-     * Getter/Setter for the account name of this EventLogInfo.
-     */
-    get accountID() { return this._accountID };
-    /**
-     * Getter/Setter for the folder name of this EventLogInfo.
-     */
-    get foldername() { return this._foldername };
-
-    set provider(v) { this._provider = v };
-    set accountname(v) { this._accountname = v };
-    set accountID(v) { this._accountID = v };
-    set foldername(v) { this._foldername = v };
 }
 
 /**
@@ -173,11 +149,13 @@ var AccountData = class {
      */
     constructor(accountID) {
         this._accountID = accountID;
-        TbSync.db.getAllAccounts().then(accounts => {
+
+        /*// Not good. TODO
+        TbSync.db.getAllAccountsForProvider(TbSync.providerInfo.addon.id).then(accounts => {
             if (!accounts.includes(accountID)) {
                 throw new Error("An account with ID <" + accountID + "> does not exist. Failed to create AccountData.");
             }    
-        })
+        })*/
     }
 
     /**
@@ -186,50 +164,54 @@ var AccountData = class {
      *
      */
     get eventLogInfo() {
-        return new EventLogInfo(
-            this.getAccountProperty("provider"),
-            this.getAccountProperty("accountname"),
-            this.accountID);
+        // We want to use await, so we need to wrap it inside an async function, as the getter itself
+        // cannot be async.
+        async function f() {
+            return new EventLogInfo(
+                await this.getAccountProperty("accountname"),
+                this.accountID);
+        };
+        return f();
     }
 
     get accountID() {
         return this._accountID;
     }
 
-    getAllFolders() {
+    async getAllFolders() {
         let allFolders = [];
-        let folders = TbSync.db.findFolders({ "cached": false }, { "accountID": this.accountID });
+        let folders = await TbSync.db.findFolders({ "cached": false }, { "accountID": this.accountID });
         for (let i = 0; i < folders.length; i++) {
             allFolders.push(new FolderData(this, folders[i].folderID));
         }
         return allFolders;
     }
 
-    getAllFoldersIncludingCache() {
+    async getAllFoldersIncludingCache() {
         let allFolders = [];
-        let folders = TbSync.db.findFolders({}, { "accountID": this.accountID });
+        let folders = await TbSync.db.findFolders({}, { "accountID": this.accountID });
         for (let i = 0; i < folders.length; i++) {
             allFolders.push(new FolderData(this, folders[i].folderID));
         }
         return allFolders;
     }
 
-    getFolder(setting, value) {
+    async getFolder(setting, value) {
         // ES6 supports variable keys by putting it into brackets
-        let folders = TbSync.db.findFolders({ [setting]: value, "cached": false }, { "accountID": this.accountID });
+        let folders = await TbSync.db.findFolders({ [setting]: value, "cached": false }, { "accountID": this.accountID });
         if (folders.length > 0) return new FolderData(this, folders[0].folderID);
         return null;
     }
 
-    getFolderFromCache(setting, value) {
+    async getFolderFromCache(setting, value) {
         // ES6 supports variable keys by putting it into brackets
-        let folders = TbSync.db.findFolders({ [setting]: value, "cached": true }, { "accountID": this.accountID });
+        let folders = await TbSync.db.findFolders({ [setting]: value, "cached": true }, { "accountID": this.accountID });
         if (folders.length > 0) return new FolderData(this, folders[0].folderID);
         return null;
     }
 
-    createNewFolder() {
-        return new FolderData(this, TbSync.db.addFolder(this.accountID));
+    async createNewFolder() {
+        return new FolderData(this, await TbSync.db.addFolder(this.accountID));
     }
 
     get syncData() {
@@ -254,13 +236,13 @@ var AccountData = class {
     }
 
     setAccountProperty(field, value) {
-        TbSync.db.setAccountProperty(this.accountID, field, value);
-         //TODO : Services.obs.notifyObservers(null, "tbsync.observer.manager.reloadAccountSetting", JSON.stringify({ accountID: this.accountID, setting: field }));
+        return TbSync.db.setAccountProperty(this.accountID, field, value);
+        //TODO : Services.obs.notifyObservers(null, "tbsync.observer.manager.reloadAccountSetting", JSON.stringify({ accountID: this.accountID, setting: field }));
     }
 
     resetAccountProperty(field) {
-        TbSync.db.resetAccountProperty(this.accountID, field);
-         //TODO : Services.obs.notifyObservers(null, "tbsync.observer.manager.reloadAccountSetting", JSON.stringify({ accountID: this.accountID, setting: field }));
+        return TbSync.db.resetAccountProperty(this.accountID, field);
+        //TODO : Services.obs.notifyObservers(null, "tbsync.observer.manager.reloadAccountSetting", JSON.stringify({ accountID: this.accountID, setting: field }));
     }
 }
 
@@ -277,9 +259,10 @@ var FolderData = class {
         this._folderID = folderID;
         this._target = null;
 
-        if (!TbSync.db.folders[accountData.accountID].hasOwnProperty(folderID)) { //TODO
+        // TODO
+        /*if (!TbSync.db.folders[accountData.accountID].hasOwnProperty(folderID)) { //TODO
             throw new Error("A folder with ID <" + folderID + "> does not exist for the given account. Failed to create FolderData.");
-        }
+        }*/
     }
 
     /**
@@ -551,7 +534,7 @@ let TbSyncClass = class {
     constructor() {
         this.port = null;
         this.provider = null;
-        this.addon = null;
+        this.providerInfo = null;
         this._connectionEstablished = false;
         this.numberOfPingRequests = 0;
 
@@ -559,20 +542,15 @@ let TbSyncClass = class {
         this.portMessageId = 0;
 
         this.sendPing = async () => {
-            let info = {
-                name: await this.provider.getProviderName(),
-                icon16: await this.provider.getProviderIcon(16),
-                apiVersion: await this.provider.getApiVersion(),
-            };
             let currentPingRequest = ++this.numberOfPingRequests;
 
             // Ping TbSync until the port based connection has been established. Aborts if registration
             // has been canceled (which clears the provider). Only one active ping allowed.
-            while (currentPingRequest == this.numberOfPingRequests && this.provider && !this._connectionEstablished) {
+            while (currentPingRequest == this.numberOfPingRequests && this.provider && this.providerInfo && !this._connectionEstablished) {
                 console.log("Ping TbSync")
                 messenger.runtime.sendMessage(TBSYNC_ID, {
                     command: "InitiateConnect",
-                    info
+                    info: this.providerInfo
                 });
                 await new Promise(resolve => window.setTimeout(resolve, 1000))
             }
@@ -600,7 +578,7 @@ let TbSyncClass = class {
                     if (this.provider.onDisconnect) {
                         this.provider.onDisconnect();
                     } else {
-                        console.log(`Incomplete provider implementation @ ${this.addon.id}: Missing onDisconnect()`);
+                        console.log(`Incomplete provider implementation @ ${this.providerInfo.addon.id}: Missing onDisconnect()`);
                     }
                 });
                 this._connectionEstablished = true;
@@ -620,7 +598,7 @@ let TbSyncClass = class {
 
         this.port = null;
         this.provider = null;
-        this.addon = null;
+        this.providerInfo = null;
 
         messenger.runtime.onConnectExternal.removeListener(this.portConnectionListener);
         messenger.management.onInstalled.removeListener(this.addonListener);
@@ -634,7 +612,12 @@ let TbSyncClass = class {
         }
 
         this.provider = new ProviderClass();
-        this.addon = await messenger.management.getSelf();
+        this.providerInfo = {
+            addon: await messenger.management.getSelf(),
+            name: await this.provider.getProviderName(),
+            icon16: await this.provider.getProviderIcon(16),
+            apiVersion: await this.provider.getApiVersion(),
+        };
 
         // Wait for port based connections attempts from TbSync.
         messenger.runtime.onConnectExternal.addListener(this.portConnectionListener);
@@ -661,7 +644,7 @@ let TbSyncClass = class {
             return;
 
         const { origin, id, data } = message;
-        if (origin == this.addon.id) {
+        if (origin == this.providerInfo.addon.id) {
             // This is an answer for one of our own requests.
             const resolve = this.portMap.get(id);
             this.portMap.delete(id);
@@ -669,17 +652,34 @@ let TbSyncClass = class {
         } else {
             // This is a request from TbSync, process.
             let [mod, func] = data.command.split(".");
-            let parameters = Array.isArray(data.parameters) ? data.parameters : [];
-            let rv;
             if (["Base"].includes(mod)) {
-                console.log(func);
                 if (this.provider[func]) {
-                    rv = await this.provider[func](...parameters);
+                    console.log(func);
+
+                    // For convinience turn a given accountID parameter into an AccountData object.
+                    let parameters = Array.isArray(data.parameters) ? data.parameters : [];
+                    switch (func) {
+                        case "getProviderIcon":
+                            if (parameters.length > 1) {
+                                parameters[1] = new AccountData(parameters[1]);
+                            }
+                            break;
+
+                        case "getSortedFolders":
+                        case "getConnectionTimeout":
+                        case "onDeleteAccount":
+                        case "onDisableAccount":
+                        case "onEnableAccount":
+                            parameters[0] = new AccountData(parameters[0]);
+                            break;
+                    }
+
+                    let rv = await this.provider[func](...parameters);
+                    port.postMessage({ origin, id, data: rv });
                 } else {
-                    console.log(`Incomplete provider implementation @ ${this.addon.id}: Missing ${func}()`);
+                    console.log(`Incomplete provider implementation @ ${this.providerInfo.addon.id}: Missing ${func}()`);
                 }
             }
-            port.postMessage({ origin, id, data: rv });
         }
     }
 
@@ -688,7 +688,7 @@ let TbSyncClass = class {
         return new Promise(resolve => {
             const id = ++this.portMessageId;
             this.portMap.set(id, resolve);
-            this.port.postMessage({ origin: this.addon.id, id, data });
+            this.port.postMessage({ origin: this.providerInfo.addon.id, id, data });
         });
     }
 
@@ -813,9 +813,9 @@ let TbSyncClass = class {
                 });
             },
 
-            getAllAccounts() {
+            getAllAccountsForProvider(provider) {
                 return self.portSend({
-                    command: "getAllAccounts",
+                    command: "getAllAccountsForProvider",
                     parameters: [...arguments]
                 });
             },

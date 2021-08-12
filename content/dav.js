@@ -43,10 +43,10 @@ export var DavProvider = class {
     /**
      * Returns location of a provider icon.
      */
-    async getProviderIcon(size, accountID = null) {
+    async getProviderIcon(size, accountData = null) {
         let root = "sabredav";
-        if (accountID) {
-            let serviceprovider = await TbSync.db.getAccountProperty(accountID, "serviceprovider");
+        if (accountData) {
+            let serviceprovider = await accountData.getAccountProperty("serviceprovider");
             if (this.serviceproviders.hasOwnProperty(serviceprovider)) {
                 root = this.serviceproviders[serviceprovider].icon;
             }
@@ -179,11 +179,9 @@ export var DavProvider = class {
      * Is called everytime an account of this provider is enabled in the
      * manager UI.
      */
-    async onEnableAccount(accountID) {
-        await TbSync.db.resetAccountProperties(accountID, [
-            "calDavPrincipal",
-            "cardDavPrincipal"
-        ]);
+    async onEnableAccount(accountData) {
+        await accountData.resetAccountProperty("calDavPrincipal");
+        await accountData.resetAccountProperty("cardDavPrincipal");
     }
 
 
@@ -191,7 +189,7 @@ export var DavProvider = class {
      * Is called everytime an account of this provider is disabled in the
      * manager UI.
      */
-    async onDisableAccount(accountID) {
+    async onDisableAccount(accountData) {
     }
 
 
@@ -199,12 +197,12 @@ export var DavProvider = class {
      * Is called everytime an account of this provider is deleted in the
      * manager UI.
      */
-    async onDeleteAccount(accountID) {
-        //dav.network.getAuthData(accountID).removeLoginData();
+    async onDeleteAccount(accountData) {
+        //dav.network.getAuthData(accountData).removeLoginData();
     }
 
 
-    /*static async abAutoComplete(accountID, currentQuery)  {
+    /*static async abAutoComplete(accountData, currentQuery)  {
         function encodeABTermValue(aString) {
             return encodeURIComponent(aString)
                 .replace(/\(/g, "%28")
@@ -308,18 +306,16 @@ export var DavProvider = class {
      * Returns all folders of the account, sorted in the desired order including
      * all data needed for the FolderListView.
      */
-    async getSortedFolders(accountID) {       
+    async getSortedFolders(accountData) {       
         let sortedFolders = [];
-        let allFolders = await TbSync.db.getAllFolders(accountID);
-        for (let folderID of allFolders) {
+        let allFolders = await accountData.getAllFolders();
+        for (let folderData of allFolders) {
             let t = 100;
 
-            let { type, shared, foldername, acl } = await TbSync.db.getFolderProperties(accountID, folderID, [
-                "type",
-                "shared",
-                "foldername",
-                "acl"
-            ]);            
+            let type = await folderData.getFolderProperty("type");
+            let shared = await folderData.getFolderProperty("shared");
+            let foldername = await folderData.getFolderProperty("foldername");
+            let acl = await folderData.getFolderProperty("acl");
 
             switch (type) {
                 case "carddav": 
@@ -342,8 +338,8 @@ export var DavProvider = class {
     
             sortedFolders.push({
                 "key": t.toString() + foldername, 
-                "accountID": accountID,
-                "folderID": folderID,
+                "accountID": accountData.accountID,
+                "folderID": folderData.folderID,
                 "folderDisplayName": foldername,
                 "typeImage": await this.getTypeImage(type, shared),
                 "attributesRoAcl": await this.getAttributesRoAcl(),
@@ -363,7 +359,7 @@ export var DavProvider = class {
      * a countdown to the connection timeout, while waiting for an answer from
      * the server. Only syncstates which start with "send." will trigger this.
      */
-    async getConnectionTimeout(accountID) {
+    async getConnectionTimeout(accountData) {
         return localStorageHandler.getPref("timeout");
     }    
 

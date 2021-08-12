@@ -10,26 +10,22 @@
 
 // Mandatory import to be able to communicate with TbSync.
 import { TbSync } from '/content/tbsync.js';
+
+// Import the provider class.
 import { DavProvider } from '/content/dav.js';
 
-async function init() {
-    // Setup local storage for our own preferences.
-    localStorageHandler.init({
-        maxitems: 50,
-        timeout: 90000,
-        "clientID.type": "TbSync",
-        "clientID.useragent": "Thunderbird CalDAV/CardDAV",
-        enforceUniqueCalendarUrls: false
-    });
-    
-    // Enable listeners for messaging based storage access, which
-    // takes care of default handling.
-    localStorageHandler.enableListeners();
+// Setup local storage for our own preferences.
+localStorageHandler.init({
+    maxitems: 50,
+    timeout: 90000,
+    "clientID.type": "TbSync",
+    "clientID.useragent": "Thunderbird CalDAV/CardDAV",
+    enforceUniqueCalendarUrls: false
+});
 
-    // Register with TbSync. Resolves after the first connection has been
-    // established. There is no need to await this call. Just calling it will
-    // setup all needed listeners to be able to (re-) establish the connection.
-    TbSync.register(DavProvider);
-}
+// Enable listeners for messaging based storage access, which
+// takes care of default handling.
+localStorageHandler.enableListeners();
 
-init();
+// Register with TbSync.
+TbSync.register(DavProvider);
