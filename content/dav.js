@@ -444,8 +444,6 @@ export var DavProvider = class {
      * types.
      */
     async getTypeImage(type, shared) {
-        let src = "";
-
         switch (type) {
             case "carddav":
                 if (shared) {

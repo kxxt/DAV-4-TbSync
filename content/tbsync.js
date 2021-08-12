@@ -151,7 +151,7 @@ var AccountData = class {
         this._accountID = accountID;
 
         /*// Not good. TODO
-        TbSync.db.getAllAccountsForProvider(TbSync.providerInfo.addon.id).then(accounts => {
+        TbSync.db.getAllAccounts().then(accounts => {
             if (!accounts.includes(accountID)) {
                 throw new Error("An account with ID <" + accountID + "> does not exist. Failed to create AccountData.");
             }    
@@ -813,9 +813,9 @@ let TbSyncClass = class {
                 });
             },
 
-            getAllAccountsForProvider(provider) {
+            getAllAccounts(provider) {
                 return self.portSend({
-                    command: "getAllAccountsForProvider",
+                    command: "getAllAccounts",
                     parameters: [...arguments]
                 });
             },
