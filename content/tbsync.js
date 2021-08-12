@@ -29,6 +29,7 @@ export var StatusData = class {
      */
     constructor(type = "success", message = "", details = "") {
         this.version = "3.0";
+        this.isStatusData = true;
         this.type = type; //success, info, warning, error
         this.message = message;
         this.details = details;
