@@ -10,6 +10,32 @@
 
 const TBSYNC_ID = "tbsync@jobisoft.de";
 
+export var FolderListEntry = class {
+    /**
+     * A FolderListEntry instances as used in the array returned by 
+     * :class:`Base.getSortedFolders`.
+     *      *
+     * @param {object} data  Folder list entry data
+     *  @param {string} sortKey  A key which defines the sort order of the folder
+     *                           list entry.
+     *  @param {FolderData} folderData  A folderData instance for the folder.
+     *  @param {string} foldername  The display name of the folder.
+     *  @param {string} typeImage  Path to a type icon for the folder.
+     *  @param {string} attributesRoAcl  Attributes for the read-only ACL menu.
+     *  @param {string} attributesRwAcl  Attributes for the read-write ACL menu.
+     *
+     */
+    constructor(data) {
+        this.sortKey = data.sortKey;
+        this.accountID = data.folderData.accountData.accountID;
+        this.folderID = data.folderData.folderID;
+        this.folderDisplayName = data.foldername;
+        this.typeImage = data.typeImage;
+        this.attributesRoAcl = data.attributesRoAcl;
+        this.attributesRwAcl = data.attributesRwAcl;
+    }
+}
+
 export var StatusData = class {
     /**
      * A StatusData instance must be used as return value by 
@@ -683,6 +709,16 @@ let TbSyncClass = class {
                     }
 
                     let rv = await this.provider[func](...parameters);
+
+                    switch (func) {
+                        case "getSortedFolders":
+                            //sort
+                            rv.sort(function (a, b) {
+                                return a.sortKey > b.sortKey;
+                            });
+                            break;
+                    }
+
                     port.postMessage({ origin, id, data: rv });
                 } else {
                     console.log(`Incomplete provider implementation @ ${this.providerInfo.addon.id}: Missing ${func}()`);

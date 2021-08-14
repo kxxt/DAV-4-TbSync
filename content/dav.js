@@ -8,21 +8,21 @@
 
 "use strict";
 
-import { TbSync, StatusData } from '/content/tbsync.js';
+import { TbSync, StatusData, FolderListEntry } from '/content/tbsync.js';
 //import * as dav from './provider/sync.js';
 
 export var DavProvider = class {
     constructor() {
         this.serviceproviders = {
-            "fruux" : {revision: 1, icon: "fruux", caldav: "https://dav.fruux.com", carddav: "https://dav.fruux.com"},
-            "mbo" : {revision: 1, icon: "mbo", caldav: "caldav6764://mailbox.org", carddav: "carddav6764://mailbox.org"},
-            "icloud" : {revision: 1, icon: "icloud", caldav: "https://caldav.icloud.com", carddav: "https://contacts.icloud.com"},
-            "google" : {revision: 1, icon: "google", caldav: "https://apidata.googleusercontent.com/caldav/v2/", carddav: "https://www.googleapis.com/.well-known/carddav"},
-            "gmx.net" : {revision: 1, icon: "gmx", caldav: "caldav6764://gmx.net", carddav: "carddav6764://gmx.net"},
-            "gmx.com" : {revision: 1, icon: "gmx", caldav: "caldav6764://gmx.com", carddav: "carddav6764://gmx.com"},
-            "posteo" : {revision: 1, icon: "posteo", caldav: "https://posteo.de:8443", carddav: "posteo.de:8843"},
-            "web.de" : {revision: 1, icon: "web", caldav: "caldav6764://web.de", carddav: "carddav6764://web.de"},
-            "yahoo" : {revision: 1, icon: "yahoo", caldav: "caldav6764://yahoo.com", carddav: "carddav6764://yahoo.com"},
+            "fruux": { revision: 1, icon: "fruux", caldav: "https://dav.fruux.com", carddav: "https://dav.fruux.com" },
+            "mbo": { revision: 1, icon: "mbo", caldav: "caldav6764://mailbox.org", carddav: "carddav6764://mailbox.org" },
+            "icloud": { revision: 1, icon: "icloud", caldav: "https://caldav.icloud.com", carddav: "https://contacts.icloud.com" },
+            "google": { revision: 1, icon: "google", caldav: "https://apidata.googleusercontent.com/caldav/v2/", carddav: "https://www.googleapis.com/.well-known/carddav" },
+            "gmx.net": { revision: 1, icon: "gmx", caldav: "caldav6764://gmx.net", carddav: "carddav6764://gmx.net" },
+            "gmx.com": { revision: 1, icon: "gmx", caldav: "caldav6764://gmx.com", carddav: "carddav6764://gmx.com" },
+            "posteo": { revision: 1, icon: "posteo", caldav: "https://posteo.de:8443", carddav: "posteo.de:8843" },
+            "web.de": { revision: 1, icon: "web", caldav: "caldav6764://web.de", carddav: "carddav6764://web.de" },
+            "yahoo": { revision: 1, icon: "yahoo", caldav: "caldav6764://yahoo.com", carddav: "carddav6764://yahoo.com" },
         };
     }
     /**
@@ -51,14 +51,14 @@ export var DavProvider = class {
                 root = this.serviceproviders[serviceprovider].icon;
             }
         }
-        
+
         switch (size) {
             case 16:
-                return messenger.runtime.getURL("content/skin/"+root+"16.png");
+                return messenger.runtime.getURL("content/skin/" + root + "16.png");
             case 32:
-                return messenger.runtime.getURL("content/skin/"+root+"32.png");
-            default :
-                return messenger.runtime.getURL("content/skin/"+root+"48.png");
+                return messenger.runtime.getURL("content/skin/" + root + "32.png");
+            default:
+                return messenger.runtime.getURL("content/skin/" + root + "48.png");
         }
     }
 
@@ -74,10 +74,10 @@ export var DavProvider = class {
      */
     async getSponsors() {
         return {
-            "Thoben, Marc" : {name: "Marc Thoben", description: "Zimbra", icon: "", link: "" },
-            "Biebl, Michael" : {name: "Michael Biebl", description: "Nextcloud", icon: "", link: "" },
-            "László, Kovács" : {name: "Kovács László", description : "Radicale", icon: "", link: "" },
-            "Lütticke, David" : {name: "David Lütticke", description : "", icon: "", link: "" },
+            "Thoben, Marc": { name: "Marc Thoben", description: "Zimbra", icon: "", link: "" },
+            "Biebl, Michael": { name: "Michael Biebl", description: "Nextcloud", icon: "", link: "" },
+            "László, Kovács": { name: "Kovács László", description: "Radicale", icon: "", link: "" },
+            "Lütticke, David": { name: "David Lütticke", description: "", icon: "", link: "" },
         };
     }
 
@@ -125,23 +125,23 @@ export var DavProvider = class {
      */
     async getDefaultAccountEntries() {
         let row = {
-            "useCalendarCache" : true,
-            "calDavHost" : "",            
-            "cardDavHost" : "",
+            "useCalendarCache": true,
+            "calDavHost": "",
+            "cardDavHost": "",
             // these must return null if not defined
-            "calDavPrincipal" : null,
-            "cardDavPrincipal" : null,
+            "calDavPrincipal": null,
+            "cardDavPrincipal": null,
 
-            "calDavOptions" : [],
-            "cardDavOptions" : [],
-            
-            "serviceprovider" : "",
-            "serviceproviderRevision" : 0,
+            "calDavOptions": [],
+            "cardDavOptions": [],
 
-            "user" : "",
-            "createdWithProviderVersion" : "0",
-            "syncGroups" : false,
-            }; 
+            "serviceprovider": "",
+            "serviceproviderRevision": 0,
+
+            "user": "",
+            "createdWithProviderVersion": "0",
+            "syncGroups": false,
+        };
         return row;
     }
 
@@ -155,22 +155,22 @@ export var DavProvider = class {
             // different folders (caldav/carddav) can be stored on different 
             // servers (as with yahoo, icloud, gmx, ...), so we need to store
             // the fqdn information per folders
-            "href" : "",
-            "https" : true,
-            "fqdn" : "",
+            "href": "",
+            "https": true,
+            "fqdn": "",
 
-            "url" : "", // used by calendar to store the full url of this cal
-            
-            "type" : "", //caldav, carddav or ics
+            "url": "", // used by calendar to store the full url of this cal
+
+            "type": "", //caldav, carddav or ics
             "shared": false, //identify shared resources
             "acl": "", //acl send from server
-            "target" : "",
-            "targetColor" : "",
-            "targetName" : "",
-            "ctag" : "",
-            "token" : "",
-            "createdWithProviderVersion" : "0",
-            };
+            "target": "",
+            "targetColor": "",
+            "targetName": "",
+            "ctag": "",
+            "token": "",
+            "createdWithProviderVersion": "0",
+        };
         return folder;
     }
 
@@ -303,10 +303,10 @@ export var DavProvider = class {
     }*/
 
     /**
-     * Returns all folders of the account, sorted in the desired order including
-     * all data needed for the FolderListView.
+     * Returns an array of :class:`FolderListEntry` instances, containing all information for
+     * the folder list in the TbSync manager.
      */
-    async getSortedFolders(accountData) {       
+    async getSortedFolders(accountData, includeAdditionalInfo = true) {
         let sortedFolders = [];
         let allFolders = await accountData.getAllFolders();
         for (let folderData of allFolders) {
@@ -315,42 +315,36 @@ export var DavProvider = class {
             let type = await folderData.getFolderProperty("type");
             let shared = await folderData.getFolderProperty("shared");
             let foldername = await folderData.getFolderProperty("foldername");
-            let acl = await folderData.getFolderProperty("acl");
 
             switch (type) {
-                case "carddav": 
-                    t+=0; 
+                case "carddav":
+                    t += 0;
                     break;
-                case "caldav": 
-                    t+=1; 
+                case "caldav":
+                    t += 1;
                     break;
-                case "ics": 
-                    t+=2; 
+                case "ics":
+                    t += 2;
                     break;
                 default:
-                    t+=9;
+                    t += 9;
                     break;
             }
 
             if (shared) {
-                t+=100;
+                t += 100;
             }
-    
-            sortedFolders.push({
-                key: t.toString() + foldername, 
-                accountID: accountData.accountID,
-                folderID: folderData.folderID,
-                folderDisplayName: foldername,
-                typeImage: await this.getTypeImage(type, shared),
-                attributesRoAcl: await this.getAttributesRoAcl(),
-                attributesRwAcl: await this.getAttributesRwAcl(parseInt(acl)),
-            });
+
+            sortedFolders.push(new FolderListEntry({
+                sortKey: t.toString() + foldername,
+                folderData,
+                foldername,
+                typeImage: includeAdditionalInfo ? await this.getTypeImage(type, shared) : null,
+                attributesRoAcl: includeAdditionalInfo ? await this.getAttributesRoAcl() : null,
+                attributesRwAcl: includeAdditionalInfo ? await this.getAttributesRwAcl(parseInt(await folderData.getFolderProperty("acl"))) : null,
+            }));
         }
-        
-        //sort
-        sortedFolders.sort(function(a,b) {
-            return  a.key > b.key;
-        });
+
         return sortedFolders;
     }
 
@@ -361,29 +355,29 @@ export var DavProvider = class {
      */
     async getConnectionTimeout(accountData) {
         return localStorageHandler.getPref("timeout");
-    }    
+    }
 
     /**
      * Is called if TbSync needs to synchronize the folder list.
      */
-    async syncFolderList(syncData, syncJob, syncRunNr) {        
+    async syncFolderList(syncData, syncJob, syncRunNr) {
         // Recommendation: Put the actual function call inside a try catch, to
         // ensure returning a proper StatusData object, regardless of what
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
-        
-    /*        try {
-            await dav.sync.folderList(syncData);
-        } catch (e) {
-            if (e.name == "dav4tbsync") {
-                return e.statusData;
-            } else {
-                console.err(e);
-                // re-throw any other error and let TbSync handle it
-                throw (e);
-            }
-        }*/
+
+        /*        try {
+                await dav.sync.folderList(syncData);
+            } catch (e) {
+                if (e.name == "dav4tbsync") {
+                    return e.statusData;
+                } else {
+                    console.err(e);
+                    // re-throw any other error and let TbSync handle it
+                    throw (e);
+                }
+            }*/
 
         // we fall through, if there was no error
         return new StatusData();
@@ -398,27 +392,27 @@ export var DavProvider = class {
         // happens inside that function. You may also throw custom errors
         // in that function, which have the StatusData obj attached, which
         // should be returned.
-        
-    /*        // Limit auto sync rate, if google
-        let isGoogle = (syncData.accountData.getAccountProperty("serviceprovider") == "google");
-        let isDefaultGoogleApp = (Services.prefs.getDefaultBranch("extensions.dav4tbsync.").getCharPref("OAuth2_ClientID") == dav.sync.prefSettings.getCharPref("OAuth2_ClientID"));
-        if (isGoogle && isDefaultGoogleApp && syncData.accountData.getAccountProperty("autosync") > 0 && syncData.accountData.getAccountProperty("autosync") < 30) {
-            syncData.accountData.setAccountProperty("autosync", 30);
-            TbSync.eventlog.add("warning", syncData.eventLogInfo, "Lowering sync interval to 30 minutes to reduce google request rate on standard TbSync Google APP (limited to 2.000.000 requests per day).");
-        }
 
-        // Process a single folder.
-        try {
-            await dav.sync.folder(syncData);
-        } catch (e) {
-            if (e.name == "dav4tbsync") {
-                return e.statusData;
-            } else {
-                console.err(e);
-                // re-throw any other error and let TbSync handle it
-                throw (e);
+        /*        // Limit auto sync rate, if google
+            let isGoogle = (syncData.accountData.getAccountProperty("serviceprovider") == "google");
+            let isDefaultGoogleApp = (Services.prefs.getDefaultBranch("extensions.dav4tbsync.").getCharPref("OAuth2_ClientID") == dav.sync.prefSettings.getCharPref("OAuth2_ClientID"));
+            if (isGoogle && isDefaultGoogleApp && syncData.accountData.getAccountProperty("autosync") > 0 && syncData.accountData.getAccountProperty("autosync") < 30) {
+                syncData.accountData.setAccountProperty("autosync", 30);
+                TbSync.eventlog.add("warning", syncData.eventLogInfo, "Lowering sync interval to 30 minutes to reduce google request rate on standard TbSync Google APP (limited to 2.000.000 requests per day).");
             }
-        }*/
+    
+            // Process a single folder.
+            try {
+                await dav.sync.folder(syncData);
+            } catch (e) {
+                if (e.name == "dav4tbsync") {
+                    return e.statusData;
+                } else {
+                    console.err(e);
+                    // re-throw any other error and let TbSync handle it
+                    throw (e);
+                }
+            }*/
 
         // we fall through, if there was no error
         return new StatusData();
@@ -472,7 +466,7 @@ export var DavProvider = class {
      *
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
-     */ 
+     */
     async getAttributesRoAcl() {
         return {
             label: await TbSync.getString("acl.readonly"),
@@ -485,17 +479,17 @@ export var DavProvider = class {
      *
      * Return a list of attributes and their values. If both (RO+RW) do
      * not return any attributes, the ACL menu is not displayed at all.
-     */ 
+     */
     async getAttributesRwAcl(acl) {
         let acls = [];
         if (acl & 0x2) acls.push(await TbSync.getString("acl.modify"));
         if (acl & 0x4) acls.push(await TbSync.getString("acl.add"));
         if (acl & 0x8) acls.push(await TbSync.getString("acl.delete"));
-        if (acls.length == 0)  acls.push(await TbSync.getString("acl.none"));
+        if (acls.length == 0) acls.push(await TbSync.getString("acl.none"));
 
         return {
-            label: await TbSync.getString("acl.readwrite::"+acls.join(", ")),
+            label: await TbSync.getString("acl.readwrite::" + acls.join(", ")),
             disabled: (acl & 0x7) != 0x7,
-        }             
-    }    
+        }
+    }
 }
