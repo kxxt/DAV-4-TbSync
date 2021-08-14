@@ -15,14 +15,13 @@ export var FolderListEntry = class {
      * A FolderListEntry instances as used in the array returned by 
      * :class:`Base.getSortedFolders`.
      *      *
-     * @param {object} data  Folder list entry data
-     *  @param {string} sortKey  A key which defines the sort order of the folder
-     *                           list entry.
-     *  @param {FolderData} folderData  A folderData instance for the folder.
-     *  @param {string} foldername  The display name of the folder.
-     *  @param {string} typeImage  Path to a type icon for the folder.
-     *  @param {string} attributesRoAcl  Attributes for the read-only ACL menu.
-     *  @param {string} attributesRwAcl  Attributes for the read-write ACL menu.
+     * @param {object} data  Folder list entry data.
+     * @param {string} data.sortKey  A key which defines the sort order of the folder list entry.
+     * @param {string} data.foldername  The display name of the folder.
+     * @param {string} data.typeImage  Path to a type icon for the folder.
+     * @param {string} data.attributesRoAcl  Attributes for the read-only ACL menu.
+     * @param {string} data.attributesRwAcl  Attributes for the read-write ACL menu.
+     * @param {FolderData} data.folderData  A folderData instance for the folder.
      *
      */
     constructor(data) {
