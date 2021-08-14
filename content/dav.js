@@ -11,6 +11,136 @@
 import { TbSync, StatusData, FolderListEntry } from '/content/tbsync.js';
 //import * as dav from './provider/sync.js';
 
+var MyAddressbookTarget = class {
+    /**
+     * TargetData constructor.
+     *
+     * @param {FolderData}  folderData  The FolderData instance of the folder
+     *                                  for which this TargetData instance is
+     *                                  being created.
+     *
+     */
+    constructor(folderData) {
+        this._folderData = folderData;
+    }
+
+    /**
+     * Check, if the target object of this TargetData exist.
+     *
+     * @returns {boolean}  True, if target exists.
+     *
+     */
+    async hasTarget() {
+        let targetID = await this._folderData.getFolderProperty("targetID");
+        let addressBookNode = await messenger.addressBooks.get(targetID);
+
+        if (addressBookNode) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the actual target object (can be whatever you want).
+     * If the target does not exist, it should be created. 
+     *
+     * .. note::
+     *    The thrown error message will be used as a status and TbSync will
+     *    use ``status.<Error.message>`` from your string bundle for the 
+     *    actual error/status message.
+     *
+     * @returns {Object}  Whatever you want to use as target object for
+     *                    this TargetData.
+     *
+     * @throws {Error}    Reason, why the target could not be created.
+     *
+     */
+    async getTarget() {
+        let targetID = await this._folderData.getFolderProperty("targetID");
+        let addressBookNode = await messenger.addressBooks.get(targetID);
+
+        if (!addressBookNode) {
+            targetID = await messenger.addressBooks.create({
+                name: await this._folderData.getFolderProperty("foldername")
+            });
+            addressBookNode = await messenger.addressBooks.get(targetID);
+
+            if (!addressBookNode) {
+                throw new Error("notargets");
+            }
+            await this._folderData.setFolderProperty("targetID", targetID);
+        }
+
+        return addressBookNode;
+    }
+
+    /**
+     * Removes the target. If it does not exist, return silently.
+     * A call to :class:`TargetData.hasTarget()` should return ``false``, after this has
+     * been executed.
+     *
+     */
+    async removeTarget() {
+        let targetID = await this._folderData.getFolderProperty("targetID");
+
+        try {
+            await messenger.addressBooks.delete(targetID);
+        } catch (e) { }
+    }
+
+    /**
+     * Disconnects the target from this TargetData, but does not delete it, so it becomes
+     * a stale "left over". 
+     * A call to :class:`TargetData.hasTarget()` should return ``false``, after this has
+     * been executed.
+     */
+    async disconnectTarget() {
+        await this._folderData.resetFolderProperty("targetID");
+    }
+
+
+    /**
+     * Get/Set the target name.
+     *
+     * @throws {Error}    Reason, why the target name could not be set/retrieved.
+     *
+     */
+    async setTargetName(newName) {
+        let targetID = await this._folderData.getFolderProperty("targetID");
+        if (targetID && newName) {
+            await messenger.addressBooks.update(targetID, {
+                name: newName
+            });
+        }
+    }
+
+    async getTargetName() {
+        let targetID = await this._folderData.getFolderProperty("targetID");
+        if (targetID) {
+            let addressBookNode = await messenger.addressBooks.get(targetID);
+            if (addressBookNode) {
+                return addressBookNode;
+            }
+        }
+        throw new Error("notargets");
+    }
+
+    /**
+     * The readonly property of the associated folder has been changed via the
+     * TbSync UI.
+     *
+     * .. note::
+     *    This might be changed to a general FolderProperty observer.
+     *
+     * @param {boolean}  value  The current value of the ``downloadonly`` folder
+     *                          property.
+     *
+     */
+    async setReadOnly(value) {
+    }
+}
+
 export var DavProvider = class {
     constructor() {
         this.serviceproviders = {
@@ -25,6 +155,11 @@ export var DavProvider = class {
             "yahoo": { revision: 1, icon: "yahoo", caldav: "caldav6764://yahoo.com", carddav: "carddav6764://yahoo.com" },
         };
     }
+
+    TargetData_addressbook() {
+        return new MyAddressbookTarget();
+    }
+
     /**
      * Returns string for the name of provider for the add account menu.
      */

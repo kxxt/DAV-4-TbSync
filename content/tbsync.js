@@ -85,7 +85,7 @@ export var StatusData = class {
     static get FOLDER_RERUN() { return "folder_rerun" };
 }
 
-export var EventLogInfo = class {
+var EventLogInfo = class {
     /**
      * An EventLogInfo instance is used when adding entries to the
      * :ref:`TbSyncEventLog`. The information given here will be added as a
@@ -116,7 +116,7 @@ export var EventLogInfo = class {
  * ``eval.`` or ``prepare.``. See :class:`SyncData.setSyncState`.
  *
  */
-export var ProgressData = class {
+var ProgressData = class {
     /**
      *
      */
