@@ -343,7 +343,7 @@ var FolderData = class {
 
         if (this.getFolderProperty("selected")) {
             //default
-            status = TbSync.getString("status." + this.getFolderProperty("status"), this.accountData.getAccountProperty("provider")).split("||")[0];
+            status = TbSync.getString("status." + this.getFolderProperty("status")).split("||")[0];
 
             switch (this.getFolderProperty("status").split(".")[0]) { //the status may have a sub-decleration
                 case "modified":
@@ -365,7 +365,7 @@ var FolderData = class {
                     //add extra info if this folder is beeing synced
                     if (this.isSyncing()) {
                         let syncdata = this.accountData.syncData;
-                        status = TbSync.getString("status.syncing", this.accountData.getAccountProperty("provider"));
+                        status = TbSync.getString("status.syncing");
                         if (["send", "eval", "prepare"].includes(syncdata.getSyncState().state.split(".")[0]) && (syncdata.progressData.todo + syncdata.progressData.done) > 0) {
                             //add progress information
                             status = status + " (" + syncdata.progressData.done + (syncdata.progressData.todo > 0 ? "/" + syncdata.progressData.todo : "") + ")";
@@ -394,14 +394,13 @@ var FolderData = class {
     get targetData() {
         // targetData is created on demand
         if (!this._target) {
-            let provider = this.accountData.getAccountProperty("provider");
             let targetType = this.getFolderProperty("targetType");
 
             if (!targetType)
-                throw new Error("Provider <" + provider + "> has not set a proper target type for this folder.");
+                throw new Error(`Provider "${TbSync.providerInfo.name}" has not set a proper target type for this folder.`);
 
             if (!TbSync.provider.hasOwnProperty("TargetData_" + targetType))
-                throw new Error("Provider <" + provider + "> is missing a TargetData implementation for <" + targetType + ">.");
+                throw new Error(`Provider "${TbSync.providerInfo.name}" is missing a TargetData implementation for "${targetType}".`);
 
             this._target = new TbSync.provider["TargetData_" + targetType](this);
 
